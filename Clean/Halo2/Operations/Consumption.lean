@@ -120,6 +120,21 @@ theorem copiedCells_subset_of_consumes
 
 end RegionOperation
 
+def RegionOperations.ConsumedCellsAssigned (operations : RegionOperations F)
+    (region : RegionIndex) (cells : List Cell) : Prop :=
+  AssignedFrom RegionOperation.Consumes region cells operations
+
+def Operations.ConsumedCellsAssigned (operations : Operations F)
+    (initialRegion : RegionIndex) (cells : List Cell) : Prop :=
+  AssignedFrom RegionOperation.Consumes initialRegion cells operations
+
+theorem Operations.copyCellsCovered_of_consumed
+    (operations : Operations F) (initialRegion : RegionIndex) (cells : List Cell)
+    (hassigned : operations.ConsumedCellsAssigned initialRegion cells) :
+    operations.CopyCellsCovered initialRegion cells :=
+  operations.copyCellsCovered_of_assignedFrom RegionOperation.copiedCells_subset_of_consumes
+    initialRegion cells hassigned
+
 /-- Combined provenance is copy provenance together with read provenance. -/
 theorem RegionOperations.assignedFrom_consumes_iff (region : RegionIndex)
     (available : List Cell) (operations : RegionOperations F) :

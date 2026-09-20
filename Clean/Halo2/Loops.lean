@@ -279,19 +279,19 @@ theorem forRange'_assignFixed_row_bounds
   rw [hrow i column row value hassignment]
   omega
 
-/-- A copy-free loop is lawful for every incoming cell state. This packages the
-operation-local `copiedCells = []` proof through the loop decomposition without
-expanding the loop's operation list. -/
+/-- A loop whose rounds consume nothing is lawful for every incoming cell state. This
+packages the operation-local proof through the loop decomposition without expanding the
+loop's operation list. -/
 @[keygen_helper]
-theorem forRange'_copyCellsAssignedFrom_of_forall_copiedCells_eq_nil
+theorem forRange'_assignedFrom_of_forall_consumes_nil (consumption : Consumption F)
     (offset stride m : ℕ) (body : (i : ℕ) → ℕ → RegionCircuit F Unit)
     (self : RegionIndex) (available : List Cell)
     (hbody : ∀ i : Fin m,
       ((body i.val (offset + i.val * stride)).operations self).Forall
-        fun operation => operation.copiedCells = []) :
-    ((forRange' offset stride m body).operations self).AssignedFrom
-      RegionOperation.Copies self available := by
-  apply RegionOperations.copyCellsAssignedFrom_of_forall_copiedCells_eq_nil
+        fun operation => consumption operation []) :
+    ((forRange' offset stride m body).operations self).AssignedFrom consumption
+      self available := by
+  apply RegionOperations.assignedFrom_of_forall_consumes_nil
   exact (forRange'_forall _ _ _ _ _ _).2 hbody
 
 /-- A loop is lawful when each round is lawful from the caller's cells together with

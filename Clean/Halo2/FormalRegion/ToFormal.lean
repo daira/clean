@@ -38,12 +38,12 @@ def toFormal (child : FormalRegionCircuit F ConfigInput Config Input Output)
         simpa only [assignRegion, Circuit.operations,
           Operations.KeygenRegistered, Operation.KeygenRegistered,
           List.Forall, and_true] using hregistered
-      copyCellsAssigned := by
+      consumedCellsAssigned := by
         intro configInput counts hconfig input region
-        have hassigned := child.elaborated.copyCellsAssigned
+        have hassigned := child.elaborated.consumedCellsAssigned
           configInput counts hconfig 0 input region
         simp only [assignRegion, Circuit.operations,
-          Operations.CopyCellsAssigned]
+          Operations.ConsumedCellsAssigned]
         rw [Operations.assignedFrom_region_iff]
         exact ⟨hassigned, .nil _ _⟩
       fixedWritesLawful := by

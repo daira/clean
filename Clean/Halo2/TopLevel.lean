@@ -720,11 +720,12 @@ theorem exists_rotation_mem_instanceQueries_of_publicInputLayout_cell
 def operations (self : TopLevelCircuit F Config PublicInput) : Operations F :=
   TopLevelCompilation.operations self.formalCircuit
 
-/-- Every copied cell in a closed top-level circuit is assigned before use. -/
-theorem operationsCopyCellsAssigned
+/-- Every cell consumed in a closed top-level circuit, copied or read, is assigned before
+use. -/
+theorem operationsConsumedCellsAssigned
     (self : TopLevelCircuit F Config PublicInput) :
-    self.operations.CopyCellsAssigned 0 [] := by
-  exact self.formalCircuit.operationsCopyCellsAssigned
+    self.operations.ConsumedCellsAssigned 0 [] := by
+  exact self.formalCircuit.operationsConsumedCellsAssigned
     () () self.noCallerRequirements
 
 /-- The closed synthesis stream inherits its circuit-local fixed-write discipline. -/

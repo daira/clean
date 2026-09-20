@@ -79,7 +79,7 @@ def double : FormalCircuit Fp
         · simp only [Add.addFormal_inputCells, List.forall_cons,
             List.forall_nil, and_true]
           and_intros <;> keygen_registration
-    copyCellsAssigned := by
+    consumedCellsAssigned := by
       intro configInput counts hconfig input i
       simp only [Configure.output_bind,
         Configure.output_pure, Circuit.operations_bind,
@@ -90,7 +90,7 @@ def double : FormalCircuit Fp
       apply Operations.AssignedFrom.append
       · keygen_registration
       · simp only [keygen_spine]
-        apply Add.addFormal.call_copyCellsAssignedFrom
+        apply Add.addFormal.call_consumedCellsAssignedFrom
           configInput.2 hconfig.toFormal _ _
         intro cell hcell
         simp only [Add.addFormal_inputCells, List.mem_cons] at hcell

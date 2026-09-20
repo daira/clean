@@ -1,4 +1,5 @@
 import Clean.Halo2.Loops
+import Clean.Halo2.Operations.Consumption
 import Clean.Halo2.Configure.Lemmas
 import Clean.Halo2.Operations.FixedWrites
 import Clean.Halo2.Operations.LookupSelectors
@@ -60,7 +61,7 @@ attribute [keygen_norm]
   RegionOperation.IsNotLookup
   RegionOperation.assignedCells RegionOperation.copiedCells
   RegionOperations.assignedCells RegionOperations.copiedCells
-  RegionOperations.CopyCellsAssigned
+  RegionOperations.ConsumedCellsAssigned
   RegionOperations.fixedColumns RegionOperations.FixedAssignmentsAgree
   RegionOperation.HasNoFixedAssignment RegionOperations.HasNoFixedAssignments
   Operations.regionFixedColumns Operations.loadedTableColumns
@@ -68,7 +69,7 @@ attribute [keygen_norm]
   RegionOperations.assignedCellsAfter
   Operation.copiedCells
   Operations.assignedCellsFrom Operations.assignedCells
-  Operations.copiedCells Operations.CopyCellsAssigned
+  Operations.copiedCells Operations.ConsumedCellsAssigned
   LookupArgument.lookupActivationWellFormed_enable
   selectorEnabledAtIndex_cons_self complexSelectorEnabledAtIndex_cons_self
   Operations.KeygenRegistered.nil Operations.KeygenRegistered.append
@@ -88,6 +89,9 @@ attribute [keygen_norm]
   Cell.of_column AssignedCell.of_cell
   output_assignAdvice output_assignRegion output_cellAt
   Vector.getElem_ofFn
+  RegionOperation.Consumes RegionOperation.Reads
+  Witgen.fieldWitnessReads Witgen.listWitnessReads Witgen.natWitnessReads
+  Witgen.boolWitnessReads Witgen.stepsWitnessReads Witgen.vectorWitnessReads
 
 attribute [grind norm]
   Configure.output_pure Configure.delta_pure
@@ -109,7 +113,7 @@ attribute [keygen_spine]
   RegionOperation.IsNotLookup
   RegionOperation.assignedCells RegionOperation.copiedCells
   RegionOperations.assignedCells RegionOperations.copiedCells
-  RegionOperations.CopyCellsAssigned
+  RegionOperations.ConsumedCellsAssigned
   RegionOperations.fixedColumns RegionOperations.FixedAssignmentsAgree
   RegionOperation.HasNoFixedAssignment RegionOperations.HasNoFixedAssignments
   Operations.regionFixedColumns Operations.loadedTableColumns
@@ -117,7 +121,7 @@ attribute [keygen_spine]
   RegionOperations.assignedCellsAfter
   Operation.copiedCells
   Operations.assignedCellsFrom Operations.assignedCells
-  Operations.copiedCells Operations.CopyCellsAssigned
+  Operations.copiedCells Operations.ConsumedCellsAssigned
   Operations.KeygenRegistered.nil Operations.KeygenRegistered.append
   Operations.KeygenRegistered.region_cons
   Operations.KeygenRegistered.constrainInstance_cons
@@ -1400,6 +1404,17 @@ partial def normalize : TacticM Unit := do
   evalTactic (← `(tactic|
     simp_all (config := { failIfUnchanged := false }) only [keygen_norm]))
 
+/--
+Open a read-support obligation `∃ reads, WitnessFunctionSupport reads compute ∧ property reads`.
+The read set is a natural hole that `solve_by_elim` fills from the rules tagged
+`witness_support` while closing the support; the property, normally the memberships of the
+reads in the available cells, remains as the goal. The label is quoted without macro scopes,
+since a hygienic name would not be the attribute's.
+-/
+macro "open_witness_support" : tactic =>
+  `(tactic| refine Halo2.exists_witnessFunctionSupport_of _
+      (by solve_by_elim (maxDepth := 16) using $(Lean.mkIdent `witness_support)) ?_)
+
 /-- Recursively normalize operation spines and conjunctions. -/
 partial def close (unfolded : Std.HashSet Name := {}) : TacticM Unit := do
   withMainContext do
@@ -1425,6 +1440,13 @@ partial def close (unfolded : Std.HashSet Name := {}) : TacticM Unit := do
     return
   if ← applyHelperCertificate then
     return
+  let state ← saveState
+  if ← tryTactic (evalTactic (← `(tactic| open_witness_support))) then
+    if (← getGoals).isEmpty then
+      return
+    close unfolded
+    return
+  state.restore
 
   withMainContext do
     let target ← instantiateMVars (← getMainTarget)

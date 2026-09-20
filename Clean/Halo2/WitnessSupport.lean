@@ -87,6 +87,15 @@ theorem WitnessFunctionSupport.pair {Left Right : Type}
   fun left right agreement => Prod.ext
     (leftSupport left right agreement.left) (rightSupport left right agreement.right)
 
+/-- Opens a read obligation with the read set left to unification: the registration tactic
+applies this, closes the support by the tagged rules, and keeps the remaining property. -/
+theorem exists_witnessFunctionSupport_of {Value : Type}
+    {compute : Placed ProverEnvironment F → Value} {property : List (AssignedCell F) → Prop}
+    (reads : List (AssignedCell F)) (support : WitnessFunctionSupport reads compute)
+    (hproperty : property reads) :
+    ∃ reads, WitnessFunctionSupport reads compute ∧ property reads :=
+  ⟨reads, support, hproperty⟩
+
 /-! ## The rules for Clean's own program shapes -/
 
 /-- Reading one assigned cell has exactly that cell as a sufficient support. -/

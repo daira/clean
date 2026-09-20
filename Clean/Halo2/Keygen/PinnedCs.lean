@@ -162,22 +162,22 @@ theorem FormalCircuit.operationsKeygenCoherent
   simpa only [program, counts, Configure.run,
     ConfigureCounts.ofConstraintSystem] using happlied
 
-/-- A circuit with no caller requirements assigns every copied cell before use. -/
-theorem FormalCircuit.operationsCopyCellsAssigned
+/-- A circuit with no caller requirements assigns every consumed cell before use. -/
+theorem FormalCircuit.operationsConsumedCellsAssigned
     (c : FormalCircuit F ConfigInput Config Input Output)
     (ci : ConfigInput) (input : Var Input F)
     (hrequirements : KeygenRequirements.EmptyAt
       (self := FormalCircuit.keygenRequirements
         (Input := Input) (Output := Output) c) ci) :
-    ((c.synthesize (c.configure ci {}).1 input).operations).CopyCellsAssigned 0 [] := by
+    ((c.synthesize (c.configure ci {}).1 input).operations).ConsumedCellsAssigned 0 [] := by
   rcases hrequirements with
-    ⟨hconfig, _, _, _, _, _, hinputCells, _⟩
+    ⟨hconfig, _, _, _, _, _, hinputCells, hreadCells⟩
   let counts :=
     ConfigureCounts.ofConstraintSystem ({} : ConstraintSystem F)
   have hassigned :=
-    c.elaborated.copyCellsAssigned ci counts hconfig input 0
+    c.elaborated.consumedCellsAssigned ci counts hconfig input 0
   simpa only [counts, Configure.run, ConfigureCounts.ofConstraintSystem,
-    hinputCells input] using hassigned
+    hinputCells input, hreadCells input, List.append_nil] using hassigned
 
 /-- A circuit meeting its configure requirements allocates every lookup-input selector. -/
 theorem FormalCircuit.lookupSelectorsAllocated

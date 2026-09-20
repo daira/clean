@@ -28,10 +28,6 @@ def RegionOperations.CopyCellsCovered (operations : RegionOperations F)
 def RegionOperation.Copies (operation : RegionOperation F) (cells : List Cell) : Prop :=
   cells = operation.copiedCells
 
-def RegionOperations.CopyCellsAssigned (operations : RegionOperations F)
-    (region : RegionIndex) (inputCells : List Cell) : Prop :=
-  AssignedFrom RegionOperation.Copies region inputCells operations
-
 /-! What each operation consumes under copy provenance, reduced to memberships. -/
 
 namespace RegionOperation
@@ -78,28 +74,7 @@ theorem consumesFrom_copies_constrainInstance_iff (cell : Cell) (column : Column
       cell ∈ available := by
   simp [ConsumesFrom, Copies, copiedCells]
 
-/-- Under copy provenance, a copy-like operation consumes exactly its endpoints. -/
-theorem copiedCells_subset_of_copies
-    (operation : RegionOperation F) (cells : List Cell) (hcopies : operation.Copies cells) :
-    ∀ cell ∈ operation.copiedCells, cell ∈ cells := by
-  intro cell hcell
-  rw [hcopies]
-  exact hcell
-
 end RegionOperation
-
-/-- A region fragment containing no copy-like operation is copy-lawful for every incoming
-cell state. -/
-@[keygen_helper]
-theorem RegionOperations.copyCellsAssignedFrom_of_forall_copiedCells_eq_nil
-    (operations : RegionOperations F) (region : RegionIndex)
-    (available : List Cell)
-    (hoperations : operations.Forall fun operation =>
-      operation.copiedCells = []) :
-    operations.AssignedFrom RegionOperation.Copies region available :=
-  assignedFrom_of_forall_consumes_nil _ region available operations
-    (List.forall_iff_forall_mem.mpr fun operation hoperation =>
-      (List.forall_iff_forall_mem.mp hoperations operation hoperation).symm)
 
 /-- Cells referenced by one copy-like layouter operation. -/
 def Operation.copiedCells : Operation F → List Cell
@@ -110,40 +85,6 @@ def Operation.copiedCells : Operation F → List Cell
 /-- Cells referenced by every copy-like operation in a layouter stream. -/
 def Operations.copiedCells (operations : Operations F) : List Cell :=
   operations.flatMap Operation.copiedCells
-
-/-- A layouter stream containing no copy-like operation is copy-lawful for every incoming
-cell state. -/
-@[keygen_helper]
-theorem Operations.copyCellsAssignedFrom_of_forall_copiedCells_eq_nil
-    (operations : Operations F) (region : RegionIndex)
-    (available : List Cell)
-    (hoperations : operations.Forall fun operation =>
-      operation.copiedCells = []) :
-    operations.AssignedFrom RegionOperation.Copies region available := by
-  induction operations generalizing region available with
-  | nil => exact .nil region available
-  | cons operation rest inductionHypothesis =>
-      rw [List.forall_cons] at hoperations
-      cases operation with
-      | region name body =>
-          apply Operations.AssignedFrom.region region available name body rest
-          · apply RegionOperations.copyCellsAssignedFrom_of_forall_copiedCells_eq_nil
-            rw [List.forall_iff_forall_mem]
-            simpa only [Operation.copiedCells, RegionOperations.copiedCells,
-              List.flatMap_eq_nil_iff] using hoperations.1
-          · exact inductionHypothesis (region := region + 1)
-              (available := body.assignedCellsAfter region available) hoperations.2
-      | constrainInstance cell column row =>
-          simp only [Operation.copiedCells, List.cons_ne_nil] at hoperations
-          exact False.elim hoperations.1
-      | loadTable column values =>
-          exact .loadTable region available column values rest
-            (inductionHypothesis (region := region) (available := available)
-              hoperations.2)
-
-def Operations.CopyCellsAssigned (operations : Operations F)
-    (initialRegion : RegionIndex) (inputCells : List Cell) : Prop :=
-  AssignedFrom RegionOperation.Copies initialRegion inputCells operations
 
 /-- Set-level consequence used by compiler proofs. -/
 def Operations.CopyCellsCovered (operations : Operations F)
@@ -225,13 +166,5 @@ theorem Operations.copyCellsCovered_of_assignedFrom
           cases hassigned with
           | loadTable _ _ _ _ _ hassignedRest =>
             exact inductionHypothesis initialRegion available hassignedRest
-
-theorem Operations.copyCellsCovered_of_assigned
-    (operations : Operations F) (initialRegion : RegionIndex)
-    (inputCells : List Cell)
-    (hassigned : operations.CopyCellsAssigned initialRegion inputCells) :
-    operations.CopyCellsCovered initialRegion inputCells :=
-  operations.copyCellsCovered_of_assignedFrom RegionOperation.copiedCells_subset_of_copies
-    initialRegion inputCells hassigned
 
 end Halo2
