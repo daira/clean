@@ -87,7 +87,7 @@ def double : FormalCircuit Fp
         nextRegionIndex_assignRegion, output_assignRegion,
         RegionCircuit.output_bind, output_assignAdvice,
         RegionCircuit.output_pure]
-      apply Operations.CopyCellsAssignedFrom.append
+      apply Operations.AssignedFrom.append
       · keygen_registration
       · simp only [keygen_spine]
         apply Add.addFormal.call_copyCellsAssignedFrom

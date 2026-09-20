@@ -1332,11 +1332,11 @@ simproc callRegistration
 simproc regionCallRegistration
     (List.Forall _ _) := callRegistrationSimproc
 
-simproc callCopyCellsAssignedFrom
-    (Operations.CopyCellsAssignedFrom _ _ _) := callRegistrationSimproc
+simproc callAssignedFrom
+    (Operations.AssignedFrom _ _ _ _) := callRegistrationSimproc
 
-simproc regionCallCopyCellsAssignedFrom
-    (RegionOperations.CopyCellsAssignedFrom _ _ _) := callRegistrationSimproc
+simproc regionCallAssignedFrom
+    (RegionOperations.AssignedFrom _ _ _ _) := callRegistrationSimproc
 
 simproc callLookupSelectorAssignmentsAgree
     (Operations.LookupSelectorAssignmentsAgree _) := callRegistrationSimproc
@@ -1346,7 +1346,7 @@ simproc regionCallLookupSelectorAssignmentsAgree
 
 attribute [keygen_norm]
   callRegistration regionCallRegistration
-  callCopyCellsAssignedFrom regionCallCopyCellsAssignedFrom
+  callAssignedFrom regionCallAssignedFrom
   callLookupSelectorAssignmentsAgree regionCallLookupSelectorAssignmentsAgree
 
 /-- Target and hypothesis types used to detect normalization progress. -/

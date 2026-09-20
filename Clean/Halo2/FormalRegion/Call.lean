@@ -348,7 +348,7 @@ theorem call_copyCellsAssignedFrom
     (hinputCells : ∀ cell,
       cell ∈ Configured.inputCells hconfigured input → cell ∈ available) :
     ((self.call config offset input).operations region)
-      |>.CopyCellsAssignedFrom region available := by
+      |>.AssignedFrom RegionOperation.Copies region available := by
   rcases hconfigured with ⟨configInput, counts, hconfig, rfl⟩
   rw [self.call_operations]
   apply (self.elaborated.copyCellsAssigned
@@ -365,7 +365,7 @@ theorem callPacked_copyCellsAssignedFrom
     (hinputCells : ∀ cell,
       cell ∈ Configured.inputCells hconfigured input → cell ∈ available) :
     (((callPacked F ConfigInput Config Input Output).val self
-      config offset input region).2).CopyCellsAssignedFrom region available :=
+      config offset input region).2).AssignedFrom RegionOperation.Copies region available :=
   self.call_copyCellsAssignedFrom config hconfigured offset input region hinputCells
 
 /-- Lookup activations in a region child call obey the lookup's local selector declaration. -/

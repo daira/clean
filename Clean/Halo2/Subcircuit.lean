@@ -625,13 +625,13 @@ theorem FormalCircuit.foldOps_copyCellsAssignedFrom
           (FormalCircuit.foldState c toInput config init i₀ i).1 →
         cell ∈ available ++
           (FormalCircuit.foldOps c toInput config init i₀ i).assignedCellsFrom i₀) :
-    (FormalCircuit.foldOps c toInput config init i₀ m).CopyCellsAssignedFrom
-      i₀ available := by
+    (FormalCircuit.foldOps c toInput config init i₀ m).AssignedFrom
+      RegionOperation.Copies i₀ available := by
   induction m with
   | zero => exact .nil i₀ available
   | succ m inductionHypothesis =>
       rw [FormalCircuit.foldOps]
-      apply Operations.CopyCellsAssignedFrom.append
+      apply Operations.AssignedFrom.append
       · apply inductionHypothesis
           (fun i => configured i.castSucc)
         intro i cell hcell
@@ -657,7 +657,7 @@ theorem FormalCircuit.foldCall_copyCellsAssignedFrom
         cell ∈ available ++
           (FormalCircuit.foldOps c toInput config init i₀ i).assignedCellsFrom i₀) :
     ((FormalCircuit.foldCall c toInput config init m).operations i₀)
-      |>.CopyCellsAssignedFrom i₀ available := by
+      |>.AssignedFrom RegionOperation.Copies i₀ available := by
   rw [FormalCircuit.foldCall_operations]
   exact FormalCircuit.foldOps_copyCellsAssignedFrom
     c toInput config init i₀ m configured hinputCells

@@ -44,8 +44,7 @@ def toFormal (child : FormalRegionCircuit F ConfigInput Config Input Output)
           configInput counts hconfig 0 input region
         simp only [assignRegion, Circuit.operations,
           Operations.CopyCellsAssigned]
-        rw [
-          Operations.copyCellsAssignedFrom_region_iff]
+        rw [Operations.assignedFrom_region_iff]
         exact ⟨hassigned, .nil _ _⟩
       fixedWritesLawful := by
         intro configInput counts hconfig input region

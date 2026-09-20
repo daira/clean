@@ -224,7 +224,7 @@ def layouterParent :
     copyCellsAssigned := by
       intro configInput counts hconfig input i
       simp only [Circuit.operations_bind]
-      apply Operations.CopyCellsAssignedFrom.append
+      apply Operations.AssignedFrom.append
       · apply witnessPointL.call_copyCellsAssignedFrom
           ((witnessPointL.configure configInput).output counts)
           (FormalCircuit.Configured.ofOutput witnessPointL

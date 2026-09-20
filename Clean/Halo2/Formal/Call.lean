@@ -360,43 +360,44 @@ theorem call_copyCellsAssignedFrom
     (input : Var Input F) (i : RegionIndex) {available : List Cell}
     (hinputCells : ∀ cell,
       cell ∈ Configured.inputCells hconfigured input → cell ∈ available) :
-    ((self.call config input).operations i).CopyCellsAssignedFrom i available := by
+    ((self.call config input).operations i).AssignedFrom RegionOperation.Copies
+      i available := by
   rcases hconfigured with ⟨configInput, counts, hconfig, rfl⟩
   rw [self.call_operations]
   apply (self.elaborated.copyCellsAssigned
     configInput counts hconfig input i).mono
   simpa [Configured.inputCells] using hinputCells
 
-/-- Copy provenance composes through a monadic bind when the first circuit's
+/-- Provenance composes through a monadic bind when the first circuit's
 `nextRegionIndex` agrees with the region count of its operation stream. -/
-theorem bind_copyCellsAssignedFrom
+theorem bind_assignedFrom (consumption : Consumption F)
     {α β : Type} (first : Circuit F α) (next : α → Circuit F β)
     (region : RegionIndex) (available : List Cell)
-    (hfirst : (first.operations region).CopyCellsAssignedFrom region available)
+    (hfirst : (first.operations region).AssignedFrom consumption region available)
     (hnextRegion : first.nextRegionIndex region =
       region + (first.operations region).regionCount)
     (hnext : ((next (first.output region)).operations
-      (first.nextRegionIndex region)).CopyCellsAssignedFrom
+      (first.nextRegionIndex region)).AssignedFrom consumption
         (first.nextRegionIndex region)
         (available ++ (first.operations region).assignedCellsFrom region)) :
-    (((first >>= next).operations region).CopyCellsAssignedFrom region available) := by
+    (((first >>= next).operations region).AssignedFrom consumption region available) := by
   rw [Circuit.operations_bind]
   apply hfirst.append
   rwa [← hnextRegion]
 
-/-- Copy provenance composes through one public-instance constraint. -/
-theorem constrainInstance_bind_copyCellsAssignedFrom
+/-- Provenance composes through one public-instance constraint. -/
+theorem constrainInstance_bind_assignedFrom (consumption : Consumption F)
     {Output : Type} (cell : AssignedCell F) (column : Column .instance)
     (row : ℕ) (next : Unit → Circuit F Output) (region : RegionIndex)
     (available : List Cell) (hcell : cell.cell ∈ available)
-    (hnext : ((next ()).operations region).CopyCellsAssignedFrom
+    (hnext : ((next ()).operations region).AssignedFrom consumption
       region available) :
     (((constrainInstance cell column row >>= next).operations region)
-      |>.CopyCellsAssignedFrom region available) := by
+      |>.AssignedFrom consumption region available) := by
   simp only [Circuit.operations_bind, operations_constrainInstance,
     nextRegionIndex_constrainInstance, constrainInstance, Circuit.output,
     List.cons_append, List.nil_append,
-    Operations.copyCellsAssignedFrom_constrainInstance_iff]
+    Operations.assignedFrom_constrainInstance_iff]
   exact ⟨hcell, hnext⟩
 
 /-- Copy provenance composes across a formal-circuit call without opening the
@@ -409,18 +410,18 @@ theorem call_bind_copyCellsAssignedFrom
     (region : RegionIndex) (available : List Cell)
     (hinput : ∀ cell, cell ∈ configured.inputCells input → cell ∈ available)
     (hnext : ((next (self.output config input region)).operations
-      (region + self.regionCount input)).CopyCellsAssignedFrom
+      (region + self.regionCount input)).AssignedFrom RegionOperation.Copies
         (region + self.regionCount input)
         (available ++ ((self.call config input).operations region).assignedCellsFrom
           region)) :
     (((self.call config input >>= next).operations region)
-      |>.CopyCellsAssignedFrom region available) := by
+      |>.AssignedFrom RegionOperation.Copies region available) := by
   have hnextRegion :
       (self.call config input).nextRegionIndex region =
         region + self.regionCount input := by
     show (self.call config input region).2.2 = region + self.regionCount input
     rw [self.call_eq]
-  apply bind_copyCellsAssignedFrom
+  apply bind_assignedFrom
   · exact self.call_copyCellsAssignedFrom config configured input region hinput
   · rw [hnextRegion, FormalCircuit.regionCount,
       self.elaborated.regionCount_eq, self.call_operations]
@@ -436,7 +437,7 @@ theorem callPacked_copyCellsAssignedFrom
     (hinputCells : ∀ cell,
       cell ∈ Configured.inputCells hconfigured input → cell ∈ available) :
     (((callPacked F ConfigInput Config Input Output).val self
-      config input i).2.1).CopyCellsAssignedFrom i available :=
+      config input i).2.1).AssignedFrom RegionOperation.Copies i available :=
   self.call_copyCellsAssignedFrom config hconfigured input i hinputCells
 
 /-- Lookup activations in a child call obey the lookup's local selector declaration. -/
