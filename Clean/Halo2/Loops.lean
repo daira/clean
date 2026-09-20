@@ -288,7 +288,7 @@ theorem forRange'_assignedFrom_of_forall_consumes_nil (consumption : Consumption
     (self : RegionIndex) (available : List Cell)
     (hbody : ∀ i : Fin m,
       ((body i.val (offset + i.val * stride)).operations self).Forall
-        fun operation => consumption operation []) :
+        fun operation => [] ∈ consumption operation) :
     ((forRange' offset stride m body).operations self).AssignedFrom consumption
       self available := by
   apply RegionOperations.assignedFrom_of_forall_consumes_nil

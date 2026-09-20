@@ -6,8 +6,8 @@ variable {F : Type}
 
 /-! ## Copy-cell provenance
 
-The instance of `AssignedFrom` at `RegionOperation.Copies`: a copy-like operation consumes its
-endpoints, and nothing else consumes anything. -/
+The instance of `AssignedFrom` at `RegionOperation.Copies`: a copy-like operation consumes
+exactly its endpoints, and the other operations consume nothing. -/
 
 /-- Cells referenced as regional endpoints of copy constraints. -/
 def RegionOperation.copiedCells : RegionOperation F → List Cell
@@ -24,55 +24,27 @@ def RegionOperations.CopyCellsCovered (operations : RegionOperations F)
   ∀ cell ∈ operations.copiedCells,
     cell ∈ inputCells ++ operations.assignedCells region
 
-/-- Copy-like operations consume their endpoints; nothing else consumes anything. -/
-def RegionOperation.Copies (operation : RegionOperation F) (cells : List Cell) : Prop :=
-  cells = operation.copiedCells
-
-/-! What each operation consumes under copy provenance, reduced to memberships. -/
+/-- A copy-like operation consumes exactly its endpoints; the other operations consume
+nothing. -/
+def RegionOperation.Copies (operation : RegionOperation F) : Language Cell :=
+  {operation.copiedCells}
 
 namespace RegionOperation
 
 variable (available : List Cell)
 
-@[keygen_norm, keygen_spine]
-theorem consumesFrom_copies_assignAdvice_iff (column : Column .advice) (row : ℕ)
-    (compute : WitgenIR F 1) :
-    ConsumesFrom Copies available (.assignAdvice column row compute) ↔ True := by
-  simp [ConsumesFrom, Copies, copiedCells]
+@[keygen_norm]
+theorem mem_copies_iff (operation : RegionOperation F) (cells : List Cell) :
+    cells ∈ operation.Copies ↔ cells = operation.copiedCells :=
+  Iff.rfl
 
+/-- Copying from a cell state is finding every endpoint there. The keygen simp sets reduce
+`copiedCells` per constructor and the memberships to conjunctions. -/
 @[keygen_norm, keygen_spine]
-theorem consumesFrom_copies_assignFixed_iff (column : Column .fixed) (row : ℕ) (value : F) :
-    ConsumesFrom Copies available (.assignFixed column row value) ↔ True := by
-  simp [ConsumesFrom, Copies, copiedCells]
-
-@[keygen_norm, keygen_spine]
-theorem consumesFrom_copies_enableGate_iff (gate : Gate F) (row : ℕ) :
-    ConsumesFrom Copies available (.enableGate gate row) ↔ True := by
-  simp [ConsumesFrom, Copies, copiedCells]
-
-@[keygen_norm, keygen_spine]
-theorem consumesFrom_copies_enableLookup_iff (lookup : LookupArgument F)
-    (selectors : List Selector) (row : ℕ) :
-    ConsumesFrom Copies available (.enableLookup lookup selectors row) ↔ True := by
-  simp [ConsumesFrom, Copies, copiedCells]
-
-@[keygen_norm, keygen_spine]
-theorem consumesFrom_copies_constrainEqual_iff (left right : Cell) :
-    ConsumesFrom Copies available (.constrainEqual left right : RegionOperation F) ↔
-      left ∈ available ∧ right ∈ available := by
-  simp [ConsumesFrom, Copies, copiedCells]
-
-@[keygen_norm, keygen_spine]
-theorem consumesFrom_copies_constrainConstant_iff (cell : Cell) (value : F) :
-    ConsumesFrom Copies available (.constrainConstant cell value) ↔ cell ∈ available := by
-  simp [ConsumesFrom, Copies, copiedCells]
-
-@[keygen_norm, keygen_spine]
-theorem consumesFrom_copies_constrainInstance_iff (cell : Cell) (column : Column .instance)
-    (row : ℕ) :
-    ConsumesFrom Copies available (.constrainInstance cell column row : RegionOperation F) ↔
-      cell ∈ available := by
-  simp [ConsumesFrom, Copies, copiedCells]
+theorem consumesFrom_copies_iff (operation : RegionOperation F) :
+    ConsumesFrom Copies available operation ↔
+      ∀ cell ∈ operation.copiedCells, cell ∈ available := by
+  simp [ConsumesFrom, mem_copies_iff]
 
 end RegionOperation
 
@@ -96,7 +68,7 @@ def Operations.CopyCellsCovered (operations : Operations F)
 endpoints yields the set-level copy coverage. -/
 theorem RegionOperations.copyCellsCovered_of_assignedFrom
     {consumption : Consumption F}
-    (hcopies : ∀ operation cells, consumption operation cells →
+    (hcopies : ∀ operation cells, cells ∈ consumption operation →
       ∀ cell ∈ operation.copiedCells, cell ∈ cells)
     (operations : RegionOperations F) (region : RegionIndex)
     (available : List Cell)
@@ -118,7 +90,7 @@ theorem RegionOperations.copyCellsCovered_of_assignedFrom
 
 theorem Operations.copyCellsCovered_of_assignedFrom
     {consumption : Consumption F}
-    (hcopies : ∀ operation cells, consumption operation cells →
+    (hcopies : ∀ operation cells, cells ∈ consumption operation →
       ∀ cell ∈ operation.copiedCells, cell ∈ cells)
     (operations : Operations F) (initialRegion : RegionIndex)
     (available : List Cell)

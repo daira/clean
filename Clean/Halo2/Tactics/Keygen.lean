@@ -89,7 +89,7 @@ attribute [keygen_norm]
   Cell.of_column AssignedCell.of_cell
   output_assignAdvice output_assignRegion output_cellAt
   Vector.getElem_ofFn
-  RegionOperation.Consumes RegionOperation.Reads
+  RegionOperation.Reads Language.mem_one
   Witgen.fieldWitnessReads Witgen.listWitnessReads Witgen.natWitnessReads
   Witgen.boolWitnessReads Witgen.stepsWitnessReads Witgen.vectorWitnessReads
 

@@ -1,4 +1,5 @@
 import Clean.Halo2.Operations
+import Mathlib.Computability.Language
 
 namespace Halo2
 
@@ -8,11 +9,11 @@ variable {F : Type}
 
 `RegionOperations.AssignedFrom consumption region available operations` walks a region's
 operations with an accumulator: the cells assigned so far in the region, plus the cells the
-caller supplies. Each operation consumes some cells, according to `consumption`, and every
-consumed cell must be in the accumulator; each assignment then extends the accumulator. The
-composition lemmas are stated for an arbitrary consumption relation, since none of them
-depends on which cells an operation consumes. Copy provenance is the instance at
-`RegionOperation.Copies` (`Operations/Copy.lean`). -/
+caller supplies. Each operation consumes some list of cells, drawn from the language that
+`consumption` assigns to it, and every consumed cell must be in the accumulator; each
+assignment then extends the accumulator. The composition lemmas are stated for an arbitrary
+consumption relation, since none of them depends on which cells an operation consumes. Copy
+provenance is the instance at `RegionOperation.Copies` (`Operations/Copy.lean`). -/
 
 /-- Cells created by assignments in one concrete region. -/
 def RegionOperation.assignedCells (region : RegionIndex) : RegionOperation F → List Cell
@@ -24,20 +25,29 @@ def RegionOperations.assignedCells (operations : RegionOperations F)
     (region : RegionIndex) : List Cell :=
   operations.flatMap (RegionOperation.assignedCells region)
 
-/-- A consumption relation: which cells an operation needs to find already assigned. -/
-abbrev Consumption (F : Type) := RegionOperation F → List Cell → Prop
+/-- A consumption relation: for each operation, the cell lists it may consume.
 
-/-- The operation consumes some cells, all of them available. -/
+A `Language α` (Mathlib) is a set of strings over the alphabet `α`, strings being lists, with
+concatenation lifted to sets as `*` and the language `{[]}` of the empty string as `1`. This
+fits consumption. An operation may consume any one of several cell lists: a copy constraint
+exactly its endpoints, an advice assignment any certified support of its program. So its
+options are a set of cell lists, a language over cells. Consuming under two relations at once
+means consuming a list from each, one after the other, which is the product of the two
+languages. Consuming nothing is the unit. Provenance uses only this multiplication and unit,
+applied operation by operation (`assignedFrom_mul_iff`, `assignedFrom_one`). -/
+abbrev Consumption (F : Type) := RegionOperation F → Language Cell
+
+/-- The operation consumes some list of cells, all of them available. -/
 def RegionOperation.ConsumesFrom (consumption : Consumption F) (available : List Cell)
     (operation : RegionOperation F) : Prop :=
-  ∃ cells, consumption operation cells ∧ ∀ cell ∈ cells, cell ∈ available
+  ∃ cells ∈ consumption operation, ∀ cell ∈ cells, cell ∈ available
 
 /-- Execution-order provenance inside one region: every operation consumes only cells
 assigned earlier in the region or supplied by the caller. -/
 inductive RegionOperations.AssignedFrom (consumption : Consumption F) (region : RegionIndex) :
     List Cell → RegionOperations F → Prop where
   | nil available : AssignedFrom consumption region available []
-  | cons available operation rest (cells : List Cell) (hconsumes : consumption operation cells)
+  | cons available operation rest (cells : List Cell) (hconsumes : cells ∈ consumption operation)
       (havailable : ∀ cell ∈ cells, cell ∈ available) :
       AssignedFrom consumption region (operation.assignedCells region ++ available) rest →
         AssignedFrom consumption region available (operation :: rest)
@@ -50,6 +60,9 @@ variable (consumption : Consumption F) (region : RegionIndex) (available : List 
 theorem assignedFrom_nil_iff : AssignedFrom consumption region available [] ↔ True :=
   ⟨fun _ => trivial, fun _ => .nil available⟩
 
+/-- One step of the walk: the operation consumes from the accumulator, which its assignments
+then extend. The keygen simp sets reduce `assignedCells` per constructor. -/
+@[keygen_norm, keygen_spine]
 theorem assignedFrom_cons_iff (operation : RegionOperation F) (rest : RegionOperations F) :
     AssignedFrom consumption region available (operation :: rest) ↔
       operation.ConsumesFrom consumption available ∧
@@ -61,69 +74,6 @@ theorem assignedFrom_cons_iff (operation : RegionOperation F) (rest : RegionOper
       exact ⟨⟨cells, hconsumes, havailable⟩, hrest⟩
   · rintro ⟨⟨cells, hconsumes, havailable⟩, hrest⟩
     exact .cons available operation rest cells hconsumes havailable hrest
-
-/-! The per-constructor rules, with the accumulator in its reduced form. -/
-
-@[keygen_norm, keygen_spine]
-theorem assignedFrom_assignAdvice_iff (column : Column .advice) (row : ℕ)
-    (compute : WitgenIR F 1) (rest : RegionOperations F) :
-    AssignedFrom consumption region available (.assignAdvice column row compute :: rest) ↔
-      RegionOperation.ConsumesFrom consumption available (.assignAdvice column row compute) ∧
-        AssignedFrom consumption region (.of region row column :: available) rest := by
-  rw [assignedFrom_cons_iff]
-  exact Iff.rfl
-
-@[keygen_norm, keygen_spine]
-theorem assignedFrom_assignFixed_iff (column : Column .fixed) (row : ℕ) (value : F)
-    (rest : RegionOperations F) :
-    AssignedFrom consumption region available (.assignFixed column row value :: rest) ↔
-      RegionOperation.ConsumesFrom consumption available (.assignFixed column row value) ∧
-        AssignedFrom consumption region (.of region row column :: available) rest := by
-  rw [assignedFrom_cons_iff]
-  exact Iff.rfl
-
-@[keygen_norm, keygen_spine]
-theorem assignedFrom_enableGate_iff (gate : Gate F) (row : ℕ) (rest : RegionOperations F) :
-    AssignedFrom consumption region available (.enableGate gate row :: rest) ↔
-      RegionOperation.ConsumesFrom consumption available (.enableGate gate row) ∧
-        AssignedFrom consumption region available rest := by
-  rw [assignedFrom_cons_iff]
-  exact Iff.rfl
-
-@[keygen_norm, keygen_spine]
-theorem assignedFrom_enableLookup_iff (lookup : LookupArgument F) (selectors : List Selector)
-    (row : ℕ) (rest : RegionOperations F) :
-    AssignedFrom consumption region available (.enableLookup lookup selectors row :: rest) ↔
-      RegionOperation.ConsumesFrom consumption available (.enableLookup lookup selectors row) ∧
-        AssignedFrom consumption region available rest := by
-  rw [assignedFrom_cons_iff]
-  exact Iff.rfl
-
-@[keygen_norm, keygen_spine]
-theorem assignedFrom_constrainEqual_iff (left right : Cell) (rest : RegionOperations F) :
-    AssignedFrom consumption region available (.constrainEqual left right :: rest) ↔
-      RegionOperation.ConsumesFrom consumption available (.constrainEqual left right) ∧
-        AssignedFrom consumption region available rest := by
-  rw [assignedFrom_cons_iff]
-  exact Iff.rfl
-
-@[keygen_norm, keygen_spine]
-theorem assignedFrom_constrainConstant_iff (cell : Cell) (value : F)
-    (rest : RegionOperations F) :
-    AssignedFrom consumption region available (.constrainConstant cell value :: rest) ↔
-      RegionOperation.ConsumesFrom consumption available (.constrainConstant cell value) ∧
-        AssignedFrom consumption region available rest := by
-  rw [assignedFrom_cons_iff]
-  exact Iff.rfl
-
-@[keygen_norm, keygen_spine]
-theorem assignedFrom_constrainInstance_iff (cell : Cell) (column : Column .instance) (row : ℕ)
-    (rest : RegionOperations F) :
-    AssignedFrom consumption region available (.constrainInstance cell column row :: rest) ↔
-      RegionOperation.ConsumesFrom consumption available (.constrainInstance cell column row) ∧
-        AssignedFrom consumption region available rest := by
-  rw [assignedFrom_cons_iff]
-  exact Iff.rfl
 
 end RegionOperations
 
@@ -174,12 +124,12 @@ theorem RegionOperations.AssignedFrom.mono
       rw [List.mem_append] at hcell ⊢
       exact hcell.imp_right (havailable cell)
 
-/-- A region fragment whose operations consume nothing is lawful for every incoming cell
+/-- A region fragment whose operations may consume nothing is lawful for every incoming cell
 state. -/
 theorem RegionOperations.assignedFrom_of_forall_consumes_nil
     (consumption : Consumption F) (region : RegionIndex) (available : List Cell)
     (operations : RegionOperations F)
-    (hoperations : operations.Forall fun operation => consumption operation []) :
+    (hoperations : operations.Forall fun operation => [] ∈ consumption operation) :
     operations.AssignedFrom consumption region available := by
   induction operations generalizing available with
   | nil => exact .nil available
@@ -187,6 +137,71 @@ theorem RegionOperations.assignedFrom_of_forall_consumes_nil
       rw [List.forall_cons] at hoperations
       exact .cons available operation rest [] hoperations.1 (fun _ hcell => nomatch hcell)
         (inductionHypothesis _ hoperations.2)
+
+/-! ## The monoid of consumption relations
+
+`(left * right) operation` is `left operation * right operation`, the language of
+concatenations `leftCells ++ rightCells` with each half drawn from its factor, and
+`(1 : Consumption F) operation` is `{[]}`. Provenance is a homomorphism from this monoid into
+conjunction: `assignedFrom_mul_iff` and `assignedFrom_one`. It is not a homomorphism for the
+language sum `left + right`: under the sum each operation may choose which of the two
+relations to consume under, so provenance for the sum says nothing about provenance for
+either relation on its own. -/
+
+theorem Consumption.mul_apply (left right : Consumption F) (operation : RegionOperation F) :
+    (left * right) operation = left operation * right operation :=
+  rfl
+
+theorem Consumption.one_apply (operation : RegionOperation F) :
+    (1 : Consumption F) operation = 1 :=
+  rfl
+
+/-- Consuming nothing under a product is consuming nothing under each factor. -/
+theorem Consumption.nil_mem_mul_iff (left right : Consumption F) (operation : RegionOperation F) :
+    [] ∈ (left * right) operation ↔ [] ∈ left operation ∧ [] ∈ right operation := by
+  rw [Consumption.mul_apply, Language.mem_mul]
+  constructor
+  · rintro ⟨leftCells, hleft, rightCells, hright, hnil⟩
+    obtain ⟨rfl, rfl⟩ := List.append_eq_nil_iff.mp hnil
+    exact ⟨hleft, hright⟩
+  · rintro ⟨hleft, hright⟩
+    exact ⟨[], hleft, [], hright, rfl⟩
+
+theorem RegionOperation.consumesFrom_mul_iff (left right : Consumption F)
+    (available : List Cell) (operation : RegionOperation F) :
+    ConsumesFrom (left * right) available operation ↔
+      ConsumesFrom left available operation ∧ ConsumesFrom right available operation := by
+  simp only [ConsumesFrom, Consumption.mul_apply, Language.mem_mul]
+  constructor
+  · rintro ⟨_, ⟨leftCells, hleft, rightCells, hright, rfl⟩, havailable⟩
+    exact ⟨⟨leftCells, hleft, fun cell hcell => havailable cell (List.mem_append_left _ hcell)⟩,
+      ⟨rightCells, hright, fun cell hcell => havailable cell (List.mem_append_right _ hcell)⟩⟩
+  · rintro ⟨⟨leftCells, hleft, hleftAvailable⟩, ⟨rightCells, hright, hrightAvailable⟩⟩
+    refine ⟨leftCells ++ rightCells, ⟨leftCells, hleft, rightCells, hright, rfl⟩, ?_⟩
+    intro cell hcell
+    rcases List.mem_append.mp hcell with hcell | hcell
+    · exact hleftAvailable cell hcell
+    · exact hrightAvailable cell hcell
+
+/-- Provenance for a product of relations is provenance for each factor. -/
+theorem RegionOperations.assignedFrom_mul_iff (left right : Consumption F)
+    (region : RegionIndex) (available : List Cell) (operations : RegionOperations F) :
+    AssignedFrom (left * right) region available operations ↔
+      AssignedFrom left region available operations ∧
+        AssignedFrom right region available operations := by
+  induction operations generalizing available with
+  | nil => simp only [assignedFrom_nil_iff, and_self]
+  | cons operation rest inductionHypothesis =>
+      simp only [assignedFrom_cons_iff, RegionOperation.consumesFrom_mul_iff,
+        inductionHypothesis]
+      exact and_and_and_comm
+
+/-- Under the unit, every fragment is lawful for every incoming cell state. -/
+theorem RegionOperations.assignedFrom_one (region : RegionIndex) (available : List Cell)
+    (operations : RegionOperations F) :
+    AssignedFrom 1 region available operations :=
+  assignedFrom_of_forall_consumes_nil 1 region available operations
+    (List.forall_iff_forall_mem.mpr fun _ _ => Language.nil_mem_one)
 
 theorem RegionOperations.mem_assignedCellsAfter_iff
     (operations : RegionOperations F) (region : RegionIndex)
