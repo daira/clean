@@ -732,7 +732,7 @@ theorem fixedWritesLawful
     (self : TopLevelCircuit F Config PublicInput) :
     self.operations.FixedWritesLawful self.constraintSystem.constants := by
   rcases self.noCallerRequirements with
-    ⟨hconfig, _, _, _, hconstantColumns, _, _⟩
+    ⟨hconfig, _, _, _, hconstantColumns, _, _, _⟩
   let program := self.formalCircuit.configure ()
   have hsource := self.formalCircuit.elaborated.fixedWritesLawful
     () {} hconfig () 0

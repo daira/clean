@@ -29,6 +29,10 @@ structure KeygenRequirements (F ConfigInput InputVar : Type) where
   /-- Concrete caller-owned cells that synthesis may use in copy constraints. -/
   inputCells : ∀ configInput, configLawful configInput →
       InputVar → List Cell := fun _ _ _ => []
+  /-- Concrete caller-owned cells that witness programs may read. Unlike `inputCells`, these
+  do not need equality-enabled columns. -/
+  readCells : ∀ configInput, configLawful configInput →
+      InputVar → List Cell := fun _ _ _ => []
 
 /-- Equality-enabled columns required by the concrete cells passed to synthesis. -/
 def KeygenRequirements.inputPermutationColumns
@@ -51,6 +55,8 @@ structure KeygenRequirements.EmptyAt
   permutationColumns_eq : self.permutationColumns input configLawful = []
   inputCells_eq : ∀ inputVar,
     self.inputCells input configLawful inputVar = []
+  readCells_eq : ∀ inputVar,
+    self.readCells input configLawful inputVar = []
 
 /--
 Static registration of one region operation in explicit configure-produced gate and

@@ -833,6 +833,7 @@ def simpCallRouting (expression : Expr) : SimpM Simp.Result := do
           expression.getAppFn.isConstOf ``KeygenRequirements.constantColumns ||
           expression.getAppFn.isConstOf ``KeygenRequirements.permutationColumns ||
           expression.getAppFn.isConstOf ``KeygenRequirements.inputCells ||
+          expression.getAppFn.isConstOf ``KeygenRequirements.readCells ||
           expression.getAppFn.isConstOf ``KeygenRequirements.inputPermutationColumns
     | return exposed
   let arguments := requirementProjection.getAppArgs

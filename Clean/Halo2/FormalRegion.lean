@@ -418,6 +418,15 @@ def Configured.inputCells
     (FormalRegionCircuit.Configured.configInput configured)
     (FormalRegionCircuit.Configured.configLawful configured) input
 
+/-- Cells the witness programs of this region call may read from the caller. -/
+def Configured.readCells
+    {self : FormalRegionCircuit F ConfigInput Config Input Output}
+    {config : Config} (configured : self.Configured config)
+    (input : Var Input F) : List Cell :=
+  self.keygenRequirements.readCells
+    (FormalRegionCircuit.Configured.configInput configured)
+    (FormalRegionCircuit.Configured.configLawful configured) input
+
 /-- Region-level certificate elimination through `Configured.gates`. -/
 theorem ConfigurationCertificate.gates_of_configured
     {self : FormalRegionCircuit F ConfigInput Config Input Output}
@@ -520,6 +529,17 @@ theorem ConfigurationCertificate.permutationColumns_of_configured
         (Configured.ofPure self config hconfig hconfigure) input =
       self.keygenRequirements.inputCells config hconfig input := by
   simp [Configured.inputCells, Configured.ofPure]
+
+@[keygen_norm] theorem Configured.ofPure_readCells
+    (self : FormalRegionCircuit F Config Config Input Output)
+    (config : Config)
+    (hconfig : self.keygenRequirements.configLawful config)
+    (hconfigure : self.configure config = pure config)
+    (input : Var Input F) :
+    Configured.readCells
+        (Configured.ofPure self config hconfig hconfigure) input =
+      self.keygenRequirements.readCells config hconfig input := by
+  simp [Configured.readCells, Configured.ofPure]
 
 @[simp, keygen_norm, grind =] theorem Configured.ofOutput_gates
     (self : FormalRegionCircuit F ConfigInput Config Input Output)

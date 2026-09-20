@@ -442,6 +442,15 @@ def Configured.inputCells
     (FormalCircuit.Configured.configInput configured)
     (FormalCircuit.Configured.configLawful configured) input
 
+/-- Cells the witness programs of this call may read from the caller. -/
+def Configured.readCells
+    {self : FormalCircuit F ConfigInput Config Input Output}
+    {config : Config} (configured : self.Configured config)
+    (input : Var Input F) : List Cell :=
+  self.keygenRequirements.readCells
+    (FormalCircuit.Configured.configInput configured)
+    (FormalCircuit.Configured.configLawful configured) input
+
 /-- Use a layouter certificate through the familiar `Configured.gates` interface. -/
 theorem ConfigurationCertificate.gates_of_configured
     {self : FormalCircuit F ConfigInput Config Input Output}
@@ -544,6 +553,17 @@ theorem ConfigurationCertificate.permutationColumns_of_configured
         (Configured.ofPure self config hconfig hconfigure) input =
       self.keygenRequirements.inputCells config hconfig input := by
   simp [Configured.inputCells, Configured.ofPure]
+
+@[keygen_norm] theorem Configured.ofPure_readCells
+    (self : FormalCircuit F Config Config Input Output)
+    (config : Config)
+    (hconfig : self.keygenRequirements.configLawful config)
+    (hconfigure : self.configure config = pure config)
+    (input : Var Input F) :
+    Configured.readCells
+        (Configured.ofPure self config hconfig hconfigure) input =
+      self.keygenRequirements.readCells config hconfig input := by
+  simp [Configured.readCells, Configured.ofPure]
 
 @[simp, keygen_norm, grind =] theorem Configured.ofOutput_gates
     (self : FormalCircuit F ConfigInput Config Input Output)

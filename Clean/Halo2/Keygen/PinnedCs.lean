@@ -144,7 +144,7 @@ theorem FormalCircuit.operationsKeygenCoherent
       ((c.synthesize (c.configure ci {}).1 input).operations) := by
   rcases hrequirements with
     ⟨hconfig, hgates, hlookups, hfixedColumns, hconstantColumns,
-      hpermutationColumns, hinputCells⟩
+      hpermutationColumns, hinputCells, _⟩
   let program := c.configure ci
   let counts :=
     ConfigureCounts.ofConstraintSystem ({} : ConstraintSystem F)
@@ -171,7 +171,7 @@ theorem FormalCircuit.operationsCopyCellsAssigned
         (Input := Input) (Output := Output) c) ci) :
     ((c.synthesize (c.configure ci {}).1 input).operations).CopyCellsAssigned 0 [] := by
   rcases hrequirements with
-    ⟨hconfig, _, _, _, _, _, hinputCells⟩
+    ⟨hconfig, _, _, _, _, _, hinputCells, _⟩
   let counts :=
     ConfigureCounts.ofConstraintSystem ({} : ConstraintSystem F)
   have hassigned :=
