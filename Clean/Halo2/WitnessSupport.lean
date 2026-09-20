@@ -163,6 +163,31 @@ theorem witnessFunctionSupport_boolBuilder (program : MOver F (AssignedCell F) (
     WitnessFunctionSupport (boolBuilderReads program) (fun env => program.evalBool env) :=
   fun left right agreement => boolBuilderReads_eval program left right agreement
 
+/-- The one-element native wrapper of a supported function has that function's support. -/
+@[witness_support]
+theorem witnessFunctionSupport_nativeScalar {reads : List (AssignedCell F)}
+    {compute : Placed ProverEnvironment F → F} (support : WitnessFunctionSupport reads compute) :
+    WitnessFunctionSupport reads
+      (fun env => ((.native (fun input => #v[compute input]) : WitgenIR F 1).eval env)[0]) :=
+  support
+
+/-- The native wrapper of a supported Boolean function, as a field bit, has its support. -/
+@[witness_support]
+theorem witnessFunctionSupport_nativeBoolean {reads : List (AssignedCell F)}
+    {compute : Placed ProverEnvironment F → Bool}
+    (support : WitnessFunctionSupport reads compute) :
+    WitnessFunctionSupport reads (fun env =>
+      ((.native (fun input => #v[if compute input then (1 : F) else 0]) : WitgenIR F 1).eval
+        env)[0]) :=
+  support.map (fun value => if value then (1 : F) else 0)
+
+/-- A constant native program does not read any cell. -/
+@[witness_support]
+theorem witnessFunctionSupport_nativeConstant (value : F) :
+    WitnessFunctionSupport (F := F) []
+      (fun env => ((.native (fun _ => #v[value]) : WitgenIR F 1).eval env)[0]) :=
+  fun _ _ _ => rfl
+
 /-- A fixed value does not need any cell read. Last among the rules, since it matches any
 program whose evaluation unfolds to a constant. -/
 @[witness_support]
