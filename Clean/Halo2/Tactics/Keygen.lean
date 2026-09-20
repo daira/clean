@@ -1406,14 +1406,12 @@ partial def normalize : TacticM Unit := do
 
 /--
 Open a read-support obligation `∃ reads, WitnessFunctionSupport reads compute ∧ property reads`.
-The read set is a natural hole that `solve_by_elim` fills from the rules tagged
+The read set is a natural hole that `solve_witness_support` fills from the rules tagged
 `witness_support` while closing the support; the property, normally the memberships of the
-reads in the available cells, remains as the goal. The label is quoted without macro scopes,
-since a hygienic name would not be the attribute's.
+reads in the available cells, remains as the goal.
 -/
 macro "open_witness_support" : tactic =>
-  `(tactic| refine Halo2.exists_witnessFunctionSupport_of _
-      (by solve_by_elim (maxDepth := 16) using $(Lean.mkIdent `witness_support)) ?_)
+  `(tactic| refine Halo2.exists_witnessFunctionSupport_of _ (by solve_witness_support) ?_)
 
 /-- Recursively normalize operation spines and conjunctions. -/
 partial def close (unfolded : Std.HashSet Name := {}) : TacticM Unit := do

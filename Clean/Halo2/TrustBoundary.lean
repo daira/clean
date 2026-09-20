@@ -234,3 +234,13 @@ starts to use choice changes its entry, and the change is reviewed with it.
 /-- info: 'Halo2.witnessFunctionSupport_const' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms Halo2.witnessFunctionSupport_const
+
+-- Supported parameters.
+
+/-- info: 'Halo2.SupportedProgram' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Halo2.SupportedProgram
+
+/-- info: 'Halo2.SupportedFunction' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms Halo2.SupportedFunction

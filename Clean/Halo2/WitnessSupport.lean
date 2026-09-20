@@ -194,4 +194,42 @@ program whose evaluation unfolds to a constant. -/
 theorem witnessFunctionSupport_const {Value : Type} (value : Value) :
     WitnessFunctionSupport (F := F) [] (fun _ => value) := fun _ _ _ => rfl
 
+/-! ## Supported parameters
+
+A gadget that takes a witness program or a native function as a parameter cannot discharge
+its read obligation for an arbitrary value of that parameter. So it takes the parameter in one
+of the two forms below, which carry a certified read set. Its contract then declares the
+parameter's reads, and the registration tactic closes the obligation from the certificate,
+since the `support` fields are themselves rules. -/
+
+/-- A witness program with a certified read set. -/
+structure SupportedProgram (F : Type) [FiniteField F] where
+  /-- The program. -/
+  program : WitgenIR F 1
+  /-- The cells that the program may read. -/
+  reads : List (AssignedCell F)
+  /-- The certificate that the program reads only those cells. -/
+  support : WitnessFunctionSupport reads (fun env => (program.eval env)[0])
+
+/-- A native function with a certified read set. -/
+structure SupportedFunction (F : Type) [FiniteField F] (Value : Type) where
+  /-- The function. -/
+  compute : Placed ProverEnvironment F → Value
+  /-- The cells that the function may read. -/
+  reads : List (AssignedCell F)
+  /-- The certificate that the function reads only those cells. -/
+  support : WitnessFunctionSupport reads compute
+
+attribute [witness_support] SupportedProgram.support SupportedFunction.support
+
+/-- Close a `WitnessFunctionSupport` goal from the rules tagged `witness_support`; a read set
+left as a natural hole is assigned by unification. The label is quoted without macro scopes,
+since a hygienic name would not be the attribute's. -/
+macro "solve_witness_support" : tactic =>
+  `(tactic| solve_by_elim (maxDepth := 16) using $(Lean.mkIdent `witness_support))
+
+/-- `supported% p` bundles the program or function `p` with the read set that the tagged rules
+find for it. The expected type chooses between `SupportedProgram` and `SupportedFunction`. -/
+macro "supported% " p:term:max : term => `(⟨$p, _, by solve_witness_support⟩)
+
 end Halo2
