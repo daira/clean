@@ -25,6 +25,29 @@ def RegionOperations.assignedCells (operations : RegionOperations F)
     (region : RegionIndex) : List Cell :=
   operations.flatMap (RegionOperation.assignedCells region)
 
+/-! The keygen sets reduce `RegionOperations.assignedCells` structurally and keep it folded
+over an opaque operation list, such as a call's, so that a rule about that list's assigned
+cells can match. -/
+
+@[keygen_norm, keygen_spine]
+theorem RegionOperations.assignedCells_nil (region : RegionIndex) :
+    RegionOperations.assignedCells (F := F) [] region = [] := rfl
+
+@[keygen_norm, keygen_spine]
+theorem RegionOperations.assignedCells_cons (operation : RegionOperation F)
+    (rest : RegionOperations F) (region : RegionIndex) :
+    RegionOperations.assignedCells (operation :: rest) region =
+      operation.assignedCells region ++ RegionOperations.assignedCells rest region :=
+  List.flatMap_cons ..
+
+@[keygen_norm, keygen_spine]
+theorem RegionOperations.assignedCells_append (left right : RegionOperations F)
+    (region : RegionIndex) :
+    RegionOperations.assignedCells (left ++ right) region =
+      RegionOperations.assignedCells left region ++
+        RegionOperations.assignedCells right region :=
+  List.flatMap_append ..
+
 /-- A consumption relation: for each operation, the cell lists it may consume.
 
 A `Language α` (Mathlib) is a set of strings over the alphabet `α`, strings being lists, with

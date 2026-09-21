@@ -60,7 +60,8 @@ attribute [keygen_norm]
   Operations.LookupActivationsWellFormed
   RegionOperation.IsNotLookup
   RegionOperation.assignedCells RegionOperation.copiedCells
-  RegionOperations.assignedCells RegionOperations.copiedCells
+  RegionOperations.assignedCells_nil RegionOperations.assignedCells_cons
+  RegionOperations.assignedCells_append RegionOperations.copiedCells
   RegionOperations.ConsumedCellsAssigned
   RegionOperations.fixedColumns RegionOperations.FixedAssignmentsAgree
   RegionOperation.HasNoFixedAssignment RegionOperations.HasNoFixedAssignments
@@ -78,7 +79,7 @@ attribute [keygen_norm]
   Operations.KeygenRegistered.constrainInstance_cons
   Operations.KeygenRegistered.loadTable_cons
   List.forall_append List.forall_cons
-  List.flatMap_cons List.flatMap_append List.map_nil List.map_cons Nat.add_zero
+  List.flatMap_cons List.flatMap_append List.map_nil List.map_cons Nat.add_zero Nat.le_refl
   List.mem_append List.mem_cons List.mem_singleton List.mem_flatMap List.mem_map
   List.not_mem_nil
   List.nil_append List.append_nil List.singleton_append List.append_assoc
@@ -113,7 +114,8 @@ attribute [keygen_spine]
   Operations.LookupActivationsWellFormed
   RegionOperation.IsNotLookup
   RegionOperation.assignedCells RegionOperation.copiedCells
-  RegionOperations.assignedCells RegionOperations.copiedCells
+  RegionOperations.assignedCells_nil RegionOperations.assignedCells_cons
+  RegionOperations.assignedCells_append RegionOperations.copiedCells
   RegionOperations.ConsumedCellsAssigned
   RegionOperations.fixedColumns RegionOperations.FixedAssignmentsAgree
   RegionOperation.HasNoFixedAssignment RegionOperations.HasNoFixedAssignments
@@ -129,7 +131,7 @@ attribute [keygen_spine]
   Operations.KeygenRegistered.constrainInstance_cons
   Operations.KeygenRegistered.loadTable_cons
   List.forall_append List.forall_cons
-  List.flatMap_cons List.flatMap_append List.map_nil List.map_cons Nat.add_zero
+  List.flatMap_cons List.flatMap_append List.map_nil List.map_cons Nat.add_zero Nat.le_refl
   List.mem_append List.mem_cons List.mem_singleton List.mem_flatMap List.mem_map
   List.nil_append List.append_nil List.singleton_append List.append_assoc
   and_self and_true true_and
