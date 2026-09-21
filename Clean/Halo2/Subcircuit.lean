@@ -624,6 +624,9 @@ theorem FormalCircuit.foldOps_consumedCellsAssignedFrom
       cell ∈ (configured i).inputCells
             (FormalCircuit.foldState c toInput config init i₀ i).1 ++
           (configured i).readCells
+            (FormalCircuit.foldState c toInput config init i₀ i).1 ++
+          (configured i).readRelativeCellsAt
+            (FormalCircuit.foldState c toInput config init i₀ i).2 0
             (FormalCircuit.foldState c toInput config init i₀ i).1 →
         cell ∈ available ++
           (FormalCircuit.foldOps c toInput config init i₀ i).assignedCellsFrom i₀) :
@@ -657,6 +660,9 @@ theorem FormalCircuit.foldCall_consumedCellsAssignedFrom
       cell ∈ (configured i).inputCells
             (FormalCircuit.foldState c toInput config init i₀ i).1 ++
           (configured i).readCells
+            (FormalCircuit.foldState c toInput config init i₀ i).1 ++
+          (configured i).readRelativeCellsAt
+            (FormalCircuit.foldState c toInput config init i₀ i).2 0
             (FormalCircuit.foldState c toInput config init i₀ i).1 →
         cell ∈ available ++
           (FormalCircuit.foldOps c toInput config init i₀ i).assignedCellsFrom i₀) :

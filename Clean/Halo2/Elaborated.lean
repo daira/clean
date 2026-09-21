@@ -161,7 +161,9 @@ class ElaboratedCircuit (F : Type) [FiniteField F]
         keygenRequirements.inputPermutationColumns configInput hconfig input) := by
     keygen_registration
   /-- Every cell an operation consumes, copied or read, is a declared caller input, a
-  declared read cell, or assigned earlier by synthesis. -/
+  declared read cell, a declared relative read, or assigned earlier by synthesis. The
+  relative reads are placed at the initial region and offset `0`, where the region of a
+  lifted region circuit starts; a layouter circuit of its own declares none. -/
   consumedCellsAssigned :
     ∀ (configInput : ConfigInput) (counts : ConfigureCounts)
       (hconfig : keygenRequirements.configLawful configInput)
@@ -169,7 +171,8 @@ class ElaboratedCircuit (F : Type) [FiniteField F]
     let program := configure configInput
     ((synthesize (program.output counts) input).operations i).ConsumedCellsAssigned i
       (keygenRequirements.inputCells configInput hconfig input ++
-        keygenRequirements.readCells configInput hconfig input) := by
+        keygenRequirements.readCells configInput hconfig input ++
+        keygenRequirements.readRelativeCellsAt configInput hconfig i 0 input) := by
     keygen_registration
   /-- Fixed writes have unambiguous compiler semantics. -/
   fixedWritesLawful :
@@ -453,7 +456,8 @@ class ElaboratedRegionCircuit (F : Type) [FiniteField F]
             keygenRequirements.inputPermutationColumns configInput hconfig input)) := by
     keygen_registration
   /-- Every cell a region operation consumes, copied or read, is a declared caller input, a
-  declared read cell, or assigned earlier in the region. -/
+  declared read cell, a declared relative read placed at this call's offset in its region, or
+  assigned earlier in the region. -/
   consumedCellsAssigned :
     ∀ (configInput : ConfigInput) (counts : ConfigureCounts)
       (hconfig : keygenRequirements.configLawful configInput)
@@ -462,7 +466,8 @@ class ElaboratedRegionCircuit (F : Type) [FiniteField F]
     ((synthesize
       (program.output counts) offset input).operations region).ConsumedCellsAssigned region
         (keygenRequirements.inputCells configInput hconfig input ++
-          keygenRequirements.readCells configInput hconfig input) := by
+          keygenRequirements.readCells configInput hconfig input ++
+          keygenRequirements.readRelativeCellsAt configInput hconfig region offset input) := by
     keygen_registration
   /-- Every region lookup activation enables its master and only declared selectors. -/
   lookupActivationsWellFormed :

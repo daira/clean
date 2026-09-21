@@ -53,7 +53,7 @@ attribute [keygen_norm]
   ConfigureDelta.permutationRequests_queryAny
   ConfigureDelta.permutationRequests_queriedCells
   RegionOperation.KeygenRegistered Operation.KeygenRegistered
-  KeygenRequirements.inputPermutationColumns
+  KeygenRequirements.inputPermutationColumns KeygenRequirements.readRelativeCellsAt
   RegionOperation.LookupActivationWellFormed
   Operation.LookupActivationsWellFormed
   RegionOperations.LookupActivationsWellFormed
@@ -77,7 +77,7 @@ attribute [keygen_norm]
   Operations.KeygenRegistered.constrainInstance_cons
   Operations.KeygenRegistered.loadTable_cons
   List.forall_append List.forall_cons
-  List.flatMap_cons List.flatMap_append
+  List.flatMap_cons List.flatMap_append List.map_nil List.map_cons
   List.mem_append List.mem_cons List.mem_singleton List.mem_flatMap List.mem_map
   List.not_mem_nil
   List.nil_append List.append_nil List.singleton_append List.append_assoc
@@ -105,7 +105,7 @@ attribute [keygen_spine]
   operations_constrainConstant operations_assignAdviceFromInstance
   operations_cellAt operations_cellVec
   RegionOperation.KeygenRegistered Operation.KeygenRegistered
-  KeygenRequirements.inputPermutationColumns
+  KeygenRequirements.inputPermutationColumns KeygenRequirements.readRelativeCellsAt
   RegionOperation.LookupActivationWellFormed
   Operation.LookupActivationsWellFormed
   RegionOperations.LookupActivationsWellFormed
@@ -127,7 +127,7 @@ attribute [keygen_spine]
   Operations.KeygenRegistered.constrainInstance_cons
   Operations.KeygenRegistered.loadTable_cons
   List.forall_append List.forall_cons
-  List.flatMap_cons List.flatMap_append
+  List.flatMap_cons List.flatMap_append List.map_nil List.map_cons
   List.mem_append List.mem_cons List.mem_singleton List.mem_flatMap List.mem_map
   List.nil_append List.append_nil List.singleton_append List.append_assoc
   and_self and_true true_and
@@ -838,6 +838,8 @@ def simpCallRouting (expression : Expr) : SimpM Simp.Result := do
           expression.getAppFn.isConstOf ``KeygenRequirements.permutationColumns ||
           expression.getAppFn.isConstOf ``KeygenRequirements.inputCells ||
           expression.getAppFn.isConstOf ``KeygenRequirements.readCells ||
+          expression.getAppFn.isConstOf ``KeygenRequirements.readRelativeCells ||
+          expression.getAppFn.isConstOf ``KeygenRequirements.readRelativeCellsAt ||
           expression.getAppFn.isConstOf ``KeygenRequirements.inputPermutationColumns
     | return exposed
   let arguments := requirementProjection.getAppArgs

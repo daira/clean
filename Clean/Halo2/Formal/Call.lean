@@ -352,14 +352,15 @@ theorem call_keygenRegistered_exact
       List.mem_append_right _ <| List.mem_map_of_mem h)
 
 /-- A child call's packaged provenance law remains valid in any caller state containing its
-declared input and read cells. -/
+declared input cells, read cells, and relative reads placed at its initial region. -/
 @[keygen_norm, keygen_call]
 theorem call_consumedCellsAssignedFrom
     (self : FormalCircuit F ConfigInput Config Input Output)
     (config : Config) (hconfigured : self.Configured config)
     (input : Var Input F) (i : RegionIndex) {available : List Cell}
     (hcells : ∀ cell,
-      cell ∈ Configured.inputCells hconfigured input ++ Configured.readCells hconfigured input →
+      cell ∈ Configured.inputCells hconfigured input ++ Configured.readCells hconfigured input ++
+          Configured.readRelativeCellsAt hconfigured i 0 input →
         cell ∈ available) :
     ((self.call config input).operations i).AssignedFrom RegionOperation.Consumes
       i available := by
@@ -367,7 +368,7 @@ theorem call_consumedCellsAssignedFrom
   rw [self.call_operations]
   apply (self.elaborated.consumedCellsAssigned
     configInput counts hconfig input i).mono
-  simpa [Configured.inputCells, Configured.readCells] using hcells
+  simpa [Configured.inputCells, Configured.readCells, Configured.readRelativeCellsAt] using hcells
 
 /-- Provenance composes through a monadic bind when the first circuit's
 `nextRegionIndex` agrees with the region count of its operation stream. -/
@@ -410,7 +411,9 @@ theorem call_bind_consumedCellsAssignedFrom
     (input : Var Input F) (next : Var Output F → Circuit F β)
     (region : RegionIndex) (available : List Cell)
     (hcells : ∀ cell,
-      cell ∈ configured.inputCells input ++ configured.readCells input → cell ∈ available)
+      cell ∈ configured.inputCells input ++ configured.readCells input ++
+          configured.readRelativeCellsAt region 0 input →
+        cell ∈ available)
     (hnext : ((next (self.output config input region)).operations
       (region + self.regionCount input)).AssignedFrom RegionOperation.Consumes
         (region + self.regionCount input)
@@ -437,7 +440,8 @@ theorem callPacked_consumedCellsAssignedFrom
     (config : Config) (hconfigured : self.Configured config)
     (input : Var Input F) (i : RegionIndex) {available : List Cell}
     (hcells : ∀ cell,
-      cell ∈ Configured.inputCells hconfigured input ++ Configured.readCells hconfigured input →
+      cell ∈ Configured.inputCells hconfigured input ++ Configured.readCells hconfigured input ++
+          Configured.readRelativeCellsAt hconfigured i 0 input →
         cell ∈ available) :
     (((callPacked F ConfigInput Config Input Output).val self
       config input i).2.1).AssignedFrom RegionOperation.Consumes i available :=

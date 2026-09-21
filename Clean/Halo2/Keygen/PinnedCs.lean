@@ -171,13 +171,14 @@ theorem FormalCircuit.operationsConsumedCellsAssigned
         (Input := Input) (Output := Output) c) ci) :
     ((c.synthesize (c.configure ci {}).1 input).operations).ConsumedCellsAssigned 0 [] := by
   rcases hrequirements with
-    ⟨hconfig, _, _, _, _, _, hinputCells, hreadCells⟩
+    ⟨hconfig, _, _, _, _, _, hinputCells, hreadCells, hreadRelativeCells⟩
   let counts :=
     ConfigureCounts.ofConstraintSystem ({} : ConstraintSystem F)
   have hassigned :=
     c.elaborated.consumedCellsAssigned ci counts hconfig input 0
   simpa only [counts, Configure.run, ConfigureCounts.ofConstraintSystem,
-    hinputCells input, hreadCells input, List.append_nil] using hassigned
+    hinputCells input, hreadCells input, KeygenRequirements.readRelativeCellsAt,
+    hreadRelativeCells input, List.map_nil, List.append_nil] using hassigned
 
 /-- A circuit meeting its configure requirements allocates every lookup-input selector. -/
 theorem FormalCircuit.lookupSelectorsAllocated

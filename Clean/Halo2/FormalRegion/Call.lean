@@ -337,8 +337,8 @@ theorem fixedColumn_mem_of_mem_call
       _ hassignment
   exact hregistered
 
-/-- A region child call's packaged copy-provenance law remains valid in any caller
-state containing its declared input cells. -/
+/-- A region child call's packaged provenance law remains valid in any caller state
+containing its declared input cells, read cells, and relative reads placed at the call. -/
 @[keygen_norm, keygen_call]
 theorem call_consumedCellsAssignedFrom
     (self : FormalRegionCircuit F ConfigInput Config Input Output)
@@ -346,7 +346,8 @@ theorem call_consumedCellsAssignedFrom
     (offset : ℕ) (input : Var Input F) (region : RegionIndex)
     {available : List Cell}
     (hcells : ∀ cell,
-      cell ∈ Configured.inputCells hconfigured input ++ Configured.readCells hconfigured input →
+      cell ∈ Configured.inputCells hconfigured input ++ Configured.readCells hconfigured input ++
+          Configured.readRelativeCellsAt hconfigured region offset input →
         cell ∈ available) :
     ((self.call config offset input).operations region)
       |>.AssignedFrom RegionOperation.Consumes region available := by
@@ -354,7 +355,7 @@ theorem call_consumedCellsAssignedFrom
   rw [self.call_operations]
   apply (self.elaborated.consumedCellsAssigned
     configInput counts hconfig offset input region).mono
-  simpa [Configured.inputCells, Configured.readCells] using hcells
+  simpa [Configured.inputCells, Configured.readCells, Configured.readRelativeCellsAt] using hcells
 
 /-- Region provenance in the opaque spelling exposed after spine normalization. -/
 @[keygen_call]
@@ -364,7 +365,8 @@ theorem callPacked_consumedCellsAssignedFrom
     (offset : ℕ) (input : Var Input F) (region : RegionIndex)
     {available : List Cell}
     (hcells : ∀ cell,
-      cell ∈ Configured.inputCells hconfigured input ++ Configured.readCells hconfigured input →
+      cell ∈ Configured.inputCells hconfigured input ++ Configured.readCells hconfigured input ++
+          Configured.readRelativeCellsAt hconfigured region offset input →
         cell ∈ available) :
     (((callPacked F ConfigInput Config Input Output).val self
       config offset input region).2).AssignedFrom RegionOperation.Consumes region available :=

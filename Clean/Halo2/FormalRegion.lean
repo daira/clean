@@ -427,6 +427,15 @@ def Configured.readCells
     (FormalRegionCircuit.Configured.configInput configured)
     (FormalRegionCircuit.Configured.configLawful configured) input
 
+/-- The relative reads of this region call, placed at `offset` in `region`. -/
+def Configured.readRelativeCellsAt
+    {self : FormalRegionCircuit F ConfigInput Config Input Output}
+    {config : Config} (configured : self.Configured config)
+    (region : RegionIndex) (offset : ℕ) (input : Var Input F) : List Cell :=
+  self.keygenRequirements.readRelativeCellsAt
+    (FormalRegionCircuit.Configured.configInput configured)
+    (FormalRegionCircuit.Configured.configLawful configured) region offset input
+
 /-- Region-level certificate elimination through `Configured.gates`. -/
 theorem ConfigurationCertificate.gates_of_configured
     {self : FormalRegionCircuit F ConfigInput Config Input Output}
@@ -540,6 +549,17 @@ theorem ConfigurationCertificate.permutationColumns_of_configured
         (Configured.ofPure self config hconfig hconfigure) input =
       self.keygenRequirements.readCells config hconfig input := by
   simp [Configured.readCells, Configured.ofPure]
+
+@[keygen_norm] theorem Configured.ofPure_readRelativeCellsAt
+    (self : FormalRegionCircuit F Config Config Input Output)
+    (config : Config)
+    (hconfig : self.keygenRequirements.configLawful config)
+    (hconfigure : self.configure config = pure config)
+    (region : RegionIndex) (offset : ℕ) (input : Var Input F) :
+    Configured.readRelativeCellsAt
+        (Configured.ofPure self config hconfig hconfigure) region offset input =
+      self.keygenRequirements.readRelativeCellsAt config hconfig region offset input := by
+  simp [Configured.readRelativeCellsAt, Configured.ofPure]
 
 @[simp, keygen_norm, grind =] theorem Configured.ofOutput_gates
     (self : FormalRegionCircuit F ConfigInput Config Input Output)
