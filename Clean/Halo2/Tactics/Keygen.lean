@@ -24,6 +24,9 @@ namespace Halo2
 attribute [keygen_norm]
   RegionCircuit.Vector.map_getElem_mem_toList
   RegionCircuit.Vector.map_getElem!_mem_toList
+  RegionCircuit.Vector.exists_mem_toList_map_getElem!
+  RegionCircuit.Vector.exists_mem_toList_map_getElem!_of_lt
+  exists_exists_and_eq_and
 
 open Lean
 
@@ -767,7 +770,7 @@ partial def freshProductMVars (type : Expr) (fuel : Nat := 32) : MetaM Expr := d
 /--
 Retry a call-routing proposition with only its keygen metadata made transparent.
 -/
-def simpCallRouting (expression : Expr) : SimpM Simp.Result := do
+def simpCallRoutingCore (expression : Expr) : SimpM Simp.Result := do
   let env ← getEnv
   let requirementProjections := keygenRequirementProjectionAttr.getDecls env
   let configureProjections := keygenConfigureProjectionAttr.getDecls env
@@ -877,6 +880,15 @@ def simpCallRouting (expression : Expr) : SimpM Simp.Result := do
     Simp.withSimpTheorems (#[projections] ++ ambient) do
       Simp.simp reducedExpression
   (← exposed.mkEqTrans definitionallyReduced).mkEqTrans reduced
+
+/-- `simpCallRoutingCore` with contextual simplification: a routing premiss over a child's
+declared cells is an implication `cell ∈ declared → cell ∈ available`, and when the declared
+list is opaque, such as the reads of a bundled parameter, only the antecedent itself proves
+the consequent. -/
+def simpCallRouting (expression : Expr) : SimpM Simp.Result := do
+  let context ← (← readThe Simp.Context).setConfig
+    { (← Simp.getConfig) with contextual := true }
+  withTheReader Simp.Context (fun _ => context) (simpCallRoutingCore expression)
 
 /-- Expose only framework projections around a configure program, preserving its head. -/
 partial def exposeConfigureProgram (program : Expr) (fuel : Nat := 8) :
@@ -1225,9 +1237,26 @@ def proveListRoutingPremise (goal : MVarId) : SimpM Bool := do
     let concreteGoal ← normalizedGoal.replaceTargetEq normalizedTarget targetEquality
     let closed ← concreteGoal.withContext do
       proveConcreteForall concreteGoal
-    unless closed do
-      throwError "concrete list-routing premise was not solved"
-    return closed
+    if closed then
+      return true
+    -- A declared list with an opaque part, such as the reads of a bundled parameter: back
+    -- to membership form over the normalized list, which contextual simplification closes
+    -- when the opaque part is itself among the available cells.
+    concreteGoal.withContext do
+      let [elementLevel] := target.getAppFn.constLevels!
+        | throwError "routing target is not a List.Forall"
+      let characterization := mkAppN
+        (mkConst ``List.forall_iff_forall_mem [elementLevel])
+        #[arguments[0]!, arguments[1]!, simplifiedValues.expr]
+      let backward ← mkAppM ``Iff.mpr #[characterization]
+      let backwardType ← whnf (← inferType backward)
+      unless backwardType.isForall do
+        throwError "invalid List.Forall characterization"
+      let simplified ← simpCallRouting backwardType.bindingDomain!
+      let some proof ← proofOfSimpTrue? simplified
+        | throwError "list-routing premiss with an opaque part was not solved"
+      concreteGoal.assign (mkApp backward proof)
+      return true
   catch _ =>
     set metaState
     return false

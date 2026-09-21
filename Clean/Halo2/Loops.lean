@@ -66,6 +66,22 @@ theorem Vector.map_getElem!_mem_toList {n : ℕ} [Inhabited α]
   rw [getElem!_pos values i.val i.isLt]
   exact Vector.map_getElem_mem_toList values f i
 
+/-- The same in the form that the keygen sets give a membership in a map, after
+`List.mem_map`: some element of the vector maps to the element at `i`'s image. A nested map,
+such as the columns of a vector input's cells, collapses to this by
+`exists_exists_and_eq_and`. -/
+theorem Vector.exists_mem_toList_map_getElem! {n : ℕ} [Inhabited α]
+    (values : Vector α n) (f : α → β) (i : Fin n) :
+    (∃ a ∈ values.toList, f a = f values[i.val]!) ↔ True :=
+  iff_true_intro (List.mem_map.mp (Vector.map_getElem!_mem_toList values f i))
+
+/-- The same at a natural-number index with its bound as a premiss, the form a loop's
+previous-round step has in context. -/
+theorem Vector.exists_mem_toList_map_getElem!_of_lt {n : ℕ} [Inhabited α]
+    (values : Vector α n) (f : α → β) (i : ℕ) (hi : i < n) :
+    (∃ a ∈ values.toList, f a = f values[i]!) ↔ True :=
+  Vector.exists_mem_toList_map_getElem! values f ⟨i, hi⟩
+
 /-! ## Generic per-round splits on the `List.ofFn`-flatten form
 
 The fundamental split lemmas, keyed on `(List.ofFn f).flatten` — the shape a loop's `operations`
