@@ -1493,6 +1493,15 @@ partial def normalize : TacticM Unit := do
   evalTactic (← `(tactic|
     simp_all (config := { failIfUnchanged := false }) only [keygen_norm]))
 
+/-- Fail if the main goal's target still mentions a metavariable. After the read-support
+search, the target is the property of the found read set, so a surviving metavariable means
+that a rule left the read set underdetermined, and the search may have filled it with
+whatever unified rather than with the program's reads. -/
+elab "keygen_guard_closed" : tactic => do
+  let target ← instantiateMVars (← getMainTarget)
+  if target.hasExprMVar then
+    throwError "read support left a metavariable in the read set:{indentExpr target}"
+
 /--
 Open a read-support obligation `∃ reads, WitnessFunctionSupport reads compute ∧ property reads`.
 The read set is a natural hole that `solve_witness_support` fills from the rules tagged
@@ -1504,7 +1513,8 @@ a program.
 -/
 macro "open_witness_support" : tactic =>
   `(tactic| (apply Halo2.exists_witnessFunctionSupport_of
-             case support => solve_witness_support))
+             case support => solve_witness_support
+             keygen_guard_closed))
 
 /-- Recursively normalize operation spines and conjunctions. -/
 partial def close (unfolded : Std.HashSet Name := {}) : TacticM Unit := do
