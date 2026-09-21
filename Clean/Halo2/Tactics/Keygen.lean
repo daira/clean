@@ -518,46 +518,70 @@ partial def closeCallSideCondition
     return
   closeCallSideCondition (unfolded.insert head)
 
-/-- Apply a registered certificate for a raw circuit helper. A side condition that the
-call-routing closer leaves open gets the whole tactic, since a loop certificate's side
-conditions are provenance obligations for one round's body. -/
+/-- Try one helper certificate: apply it and close its side conditions with the call-routing
+closer, then, when `fallback` is set, with the whole tactic. Returns whether every side
+condition closed, and otherwise how many the cheap closer closed. -/
+def tryHelperCertificate (candidate : Name) (targetHead : Name) (fallback : Bool) :
+    TacticM (Bool × Nat) := do
+  let state ← saveState
+  try
+    let certificateLemma ← mkConstWithFreshMVarLevels candidate
+    -- The head is the conclusion's: a loop certificate's hypotheses mention the bound
+    -- round body's operations first.
+    let some candidateHead :=
+        circuitHead? (← liftMetaM <| inferType certificateLemma).getForallBody
+      | state.restore
+        return (false, 0)
+    if candidateHead != targetHead then
+      state.restore
+      return (false, 0)
+    let sideConditions ← (← getMainGoal).apply certificateLemma
+    let mut remaining := []
+    let mut closed := 0
+    for sideCondition in sideConditions.reverse do
+      if ← liftMetaM sideCondition.isAssigned then
+        continue
+      setGoals [sideCondition]
+      closeCallSideCondition
+      if (← getGoals).isEmpty then
+        closed := closed + 1
+      else if fallback then
+        let sideState ← saveState
+        try
+          evalTactic (← `(tactic| keygen_registration))
+        catch _ =>
+          sideState.restore
+      remaining := remaining ++ (← getGoals)
+    setGoals remaining
+    if (← getGoals).isEmpty then
+      return (true, closed)
+    state.restore
+    return (false, closed)
+  catch _ =>
+    state.restore
+    return (false, 0)
+
+/-- Apply a registered certificate for a raw circuit helper. Every candidate is tried with
+the cheap call-routing closer first; only then does a candidate that made progress, closing
+some side condition cheaply, get the whole tactic on the rest, since a loop certificate's
+side conditions are provenance obligations for one round's body. A candidate whose cheap
+pass closed nothing is likely the wrong one, and the whole tactic on its side conditions would
+spend the declaration's budget. -/
 def applyHelperCertificate : TacticM Bool := withMainContext do
   let target ← instantiateMVars (← getMainTarget)
   let some targetHead := circuitHead? target
     | return false
+  let mut progressed : Array Name := #[]
   for candidate in keygenHelperAttr.getDecls (← getEnv) do
-    let state ← saveState
-    try
-      let certificateLemma ← mkConstWithFreshMVarLevels candidate
-      -- The head is the conclusion's: a loop certificate's hypotheses mention the bound
-      -- round body's operations first.
-      let some candidateHead :=
-          circuitHead? (← liftMetaM <| inferType certificateLemma).getForallBody
-        | state.restore
-          continue
-      if candidateHead != targetHead then
-        state.restore
-        continue
-      let sideConditions ← (← getMainGoal).apply certificateLemma
-      let mut remaining := []
-      for sideCondition in sideConditions.reverse do
-        if ← liftMetaM sideCondition.isAssigned then
-          continue
-        setGoals [sideCondition]
-        closeCallSideCondition
-        if !(← getGoals).isEmpty then
-          let sideState ← saveState
-          try
-            evalTactic (← `(tactic| keygen_registration))
-          catch _ =>
-            sideState.restore
-        remaining := remaining ++ (← getGoals)
-      setGoals remaining
-      if (← getGoals).isEmpty then
-        return true
-      state.restore
-    catch _ =>
-      state.restore
+    let (done, closed) ← tryHelperCertificate candidate targetHead false
+    if done then
+      return true
+    if closed > 0 then
+      progressed := progressed.push candidate
+  for candidate in progressed do
+    let (done, _) ← tryHelperCertificate candidate targetHead true
+    if done then
+      return true
   return false
 
 /-- Collect the formal-circuit-valued direct arguments of an application. -/
