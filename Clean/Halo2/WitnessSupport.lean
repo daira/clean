@@ -235,10 +235,15 @@ attribute [witness_support] SupportedProgram.support SupportedFunction.support
   SupportedEnvironmentFunction.support
 
 /-- Close a `WitnessFunctionSupport` goal from the rules tagged `witness_support`; a read set
-left as a natural hole is assigned by unification. The label is quoted without macro scopes,
-since a hygienic name would not be the attribute's. -/
+left as a natural hole is assigned by unification. Rules match at reducible transparency, so
+a closure with a rule of its own is found by that rule and every other rule fails fast; a
+program written as a definition around the IR is unfolded by the keygen normalization
+before the search. The label is quoted without macro scopes, since a hygienic name would not
+be the attribute's. -/
 macro "solve_witness_support" : tactic =>
-  `(tactic| solve_by_elim (maxDepth := 16) using $(Lean.mkIdent `witness_support))
+  `(tactic| solve_by_elim
+      (config := { maxDepth := 16, transparency := .reducible, symm := false, exfalso := false })
+      using $(Lean.mkIdent `witness_support))
 
 /-- `supported% p` bundles the program or function `p` with the read set that the tagged rules
 find for it. The expected type chooses between `SupportedProgram` and `SupportedFunction`. -/
