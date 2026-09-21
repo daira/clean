@@ -244,3 +244,7 @@ starts to use choice changes its entry, and the change is reviewed with it.
 /-- info: 'Halo2.SupportedFunction' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms Halo2.SupportedFunction
+
+/-- info: 'Halo2.SupportedEnvironmentFunction' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms Halo2.SupportedEnvironmentFunction

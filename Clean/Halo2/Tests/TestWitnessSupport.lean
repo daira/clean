@@ -35,4 +35,11 @@ example (f : SupportedFunction F F) :
     (supported% (.native fun env => #v[f.compute env]) : SupportedProgram F).reads =
       f.reads := rfl
 
+-- A function of the assignment is certified through its lift.
+example : (supported% (fun _ => (0 : F)) : SupportedEnvironmentFunction F F).reads = [] := rfl
+
+example (f : SupportedEnvironmentFunction F F) :
+    (supported% (.native fun env => #v[f.compute env.toEnvironment]) :
+      SupportedProgram F).reads = f.reads := rfl
+
 end Halo2.Tests.TestWitnessSupport

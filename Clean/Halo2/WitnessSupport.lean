@@ -220,7 +220,19 @@ structure SupportedFunction (F : Type) [FiniteField F] (Value : Type) where
   /-- The certificate that the function reads only those cells. -/
   support : WitnessFunctionSupport reads compute
 
+/-- A function of the assignment with a certified read set: the form of a parameter that a
+witness program lifts to the prover environment and that `extract` applies to the assignment
+itself, so the certificate is about the lift. -/
+structure SupportedEnvironmentFunction (F : Type) [FiniteField F] (Value : Type) where
+  /-- The function. -/
+  compute : Placed Environment F → Value
+  /-- The cells that the function may read. -/
+  reads : List (AssignedCell F)
+  /-- The certificate that the lift of the function reads only those cells. -/
+  support : WitnessFunctionSupport reads (fun env => compute env.toEnvironment)
+
 attribute [witness_support] SupportedProgram.support SupportedFunction.support
+  SupportedEnvironmentFunction.support
 
 /-- Close a `WitnessFunctionSupport` goal from the rules tagged `witness_support`; a read set
 left as a natural hole is assigned by unification. The label is quoted without macro scopes,
