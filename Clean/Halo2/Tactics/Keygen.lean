@@ -284,6 +284,18 @@ open Lean Elab Tactic Meta
 tactic on a certificate's side conditions. -/
 syntax "keygen_registration" : tactic
 
+/-- The discharger of the keygen simp calls: a rule's premiss is a hypothesis in context,
+such as a gadget's own parameters (a nonempty width list, positive widths, a loop index
+bound), or else something the sets prove on their own. Simp's default discharger only
+simplifies, so a hypothesis premiss would never discharge. -/
+macro "keygen_discharge" : tactic =>
+  `(tactic| first
+    | assumption
+    | (simp only [keygen_spine, keygen_norm] <;> fail "keygen_discharge: premiss not proved")
+    -- Last, so that the failing alternative above runs without error recovery: the last
+    -- alternative of `first` would log its failure and admit the goal.
+    | skip)
+
 namespace KeygenRegistration
 
 /-- Find a transparent configure-program head below an output/delta projection. -/
@@ -1449,7 +1461,8 @@ partial def normalize : TacticM Unit := do
     normalize
     return
   let before ← goalContextTypes
-  evalTactic (← `(tactic| simp (config := { failIfUnchanged := false }) only [
+  evalTactic (← `(tactic| simp (config := { failIfUnchanged := false })
+    (disch := keygen_discharge) only [
     keygen_spine, keygen_norm,
     Operations.KeygenRegistered, Operation.KeygenRegistered,
     RegionOperation.KeygenRegistered,
