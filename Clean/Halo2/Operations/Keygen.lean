@@ -57,6 +57,12 @@ def KeygenRequirements.readRelativeCellsAt
   (self.readRelativeCells configInput configLawful input).map fun (column, gadgetRow) =>
     ⟨region, offset + gadgetRow, column⟩
 
+/-- A placed relative read, in the `Cell.of` spelling that the keygen normal form keeps for
+cells. -/
+@[keygen_norm]
+theorem Cell.mk_toAny (self : RegionIndex) (row : ℕ) {kind : ColumnKind} (col : Column kind) :
+    (⟨self, row, col.toAny⟩ : Cell) = Cell.of self row col := rfl
+
 /-- A configure input has no keygen requirements left for an enclosing circuit. -/
 structure KeygenRequirements.EmptyAt
     {ConfigInput InputVar : Type}

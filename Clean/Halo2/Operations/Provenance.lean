@@ -83,6 +83,23 @@ def RegionOperations.assignedCellsAfter (region : RegionIndex)
   operations.foldl (fun cells operation =>
     operation.assignedCells region ++ cells) available
 
+/-! The keygen sets reduce `assignedCellsAfter` structurally and keep it folded over an
+opaque operation list, such as a loop's, so that a rule about that list's assigned cells can
+match. -/
+
+@[keygen_norm, keygen_spine]
+theorem RegionOperations.assignedCellsAfter_nil (region : RegionIndex)
+    (available : List Cell) :
+    RegionOperations.assignedCellsAfter (F := F) region available [] = available := rfl
+
+@[keygen_norm, keygen_spine]
+theorem RegionOperations.assignedCellsAfter_cons (operation : RegionOperation F)
+    (rest : RegionOperations F) (region : RegionIndex) (available : List Cell) :
+    RegionOperations.assignedCellsAfter region available (operation :: rest) =
+      RegionOperations.assignedCellsAfter region
+        (operation.assignedCells region ++ available) rest := rfl
+
+@[keygen_norm, keygen_spine]
 theorem RegionOperations.assignedCellsAfter_append
     (left right : RegionOperations F) (region : RegionIndex)
     (available : List Cell) :

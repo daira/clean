@@ -66,7 +66,8 @@ attribute [keygen_norm]
   RegionOperation.HasNoFixedAssignment RegionOperations.HasNoFixedAssignments
   Operations.regionFixedColumns Operations.loadedTableColumns
   Operation.HasNoFixedWrites Operations.HasNoFixedWrites
-  RegionOperations.assignedCellsAfter
+  RegionOperations.assignedCellsAfter_nil RegionOperations.assignedCellsAfter_cons
+  RegionOperations.assignedCellsAfter_append
   Operation.copiedCells
   Operations.assignedCellsFrom Operations.assignedCells
   Operations.copiedCells Operations.ConsumedCellsAssigned
@@ -77,7 +78,7 @@ attribute [keygen_norm]
   Operations.KeygenRegistered.constrainInstance_cons
   Operations.KeygenRegistered.loadTable_cons
   List.forall_append List.forall_cons
-  List.flatMap_cons List.flatMap_append List.map_nil List.map_cons
+  List.flatMap_cons List.flatMap_append List.map_nil List.map_cons Nat.add_zero
   List.mem_append List.mem_cons List.mem_singleton List.mem_flatMap List.mem_map
   List.not_mem_nil
   List.nil_append List.append_nil List.singleton_append List.append_assoc
@@ -85,7 +86,7 @@ attribute [keygen_norm]
   or_self or_true true_or or_false false_or
   false_implies implies_true forall_true_iff
   forall_eq forall_eq_or_imp imp_self or_imp
-  ite_self
+  ite_self if_true if_false Bool.false_eq_true
   Cell.of_column AssignedCell.of_cell
   output_assignAdvice output_assignRegion output_cellAt
   Vector.getElem_ofFn
@@ -118,7 +119,8 @@ attribute [keygen_spine]
   RegionOperation.HasNoFixedAssignment RegionOperations.HasNoFixedAssignments
   Operations.regionFixedColumns Operations.loadedTableColumns
   Operation.HasNoFixedWrites Operations.HasNoFixedWrites
-  RegionOperations.assignedCellsAfter
+  RegionOperations.assignedCellsAfter_nil RegionOperations.assignedCellsAfter_cons
+  RegionOperations.assignedCellsAfter_append
   Operation.copiedCells
   Operations.assignedCellsFrom Operations.assignedCells
   Operations.copiedCells Operations.ConsumedCellsAssigned
@@ -127,7 +129,7 @@ attribute [keygen_spine]
   Operations.KeygenRegistered.constrainInstance_cons
   Operations.KeygenRegistered.loadTable_cons
   List.forall_append List.forall_cons
-  List.flatMap_cons List.flatMap_append List.map_nil List.map_cons
+  List.flatMap_cons List.flatMap_append List.map_nil List.map_cons Nat.add_zero
   List.mem_append List.mem_cons List.mem_singleton List.mem_flatMap List.mem_map
   List.nil_append List.append_nil List.singleton_append List.append_assoc
   and_self and_true true_and
