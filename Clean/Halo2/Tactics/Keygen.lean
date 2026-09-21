@@ -275,6 +275,10 @@ theorem assignAdvice_keygenRegistered
 
 open Lean Elab Tactic Meta
 
+/-- Declared ahead of its elaborator, so that the helper-certificate step can run the whole
+tactic on a certificate's side conditions. -/
+syntax "keygen_registration" : tactic
+
 namespace KeygenRegistration
 
 /-- Find a transparent configure-program head below an output/delta projection. -/
@@ -454,7 +458,7 @@ partial def closeCallSideCondition
   try
     evalTactic (← `(tactic|
       first | assumption | exact () | rfl |
-        simp_all only [keygen_norm, synthesis_summary_norm]))
+        simp_all only [keygen_spine, keygen_norm, synthesis_summary_norm]))
   catch _ =>
     state.restore
   if (← getGoals).isEmpty then
@@ -476,7 +480,7 @@ partial def closeCallSideCondition
   let state ← saveState
   try
     evalTactic (← `(tactic|
-      simp_all only [keygen_norm, synthesis_summary_norm]))
+      simp_all only [keygen_spine, keygen_norm, synthesis_summary_norm]))
   catch _ =>
     state.restore
   if (← getGoals).isEmpty then
@@ -509,7 +513,9 @@ partial def closeCallSideCondition
     return
   closeCallSideCondition (unfolded.insert head)
 
-/-- Apply a registered certificate for a raw circuit helper. -/
+/-- Apply a registered certificate for a raw circuit helper. A side condition that the
+call-routing closer leaves open gets the whole tactic, since a loop certificate's side
+conditions are provenance obligations for one round's body. -/
 def applyHelperCertificate : TacticM Bool := withMainContext do
   let target ← instantiateMVars (← getMainTarget)
   let some targetHead := circuitHead? target
@@ -518,7 +524,10 @@ def applyHelperCertificate : TacticM Bool := withMainContext do
     let state ← saveState
     try
       let certificateLemma ← mkConstWithFreshMVarLevels candidate
-      let some candidateHead := circuitHead? (← liftMetaM <| inferType certificateLemma)
+      -- The head is the conclusion's: a loop certificate's hypotheses mention the bound
+      -- round body's operations first.
+      let some candidateHead :=
+          circuitHead? (← liftMetaM <| inferType certificateLemma).getForallBody
         | state.restore
           continue
       if candidateHead != targetHead then
@@ -531,6 +540,12 @@ def applyHelperCertificate : TacticM Bool := withMainContext do
           continue
         setGoals [sideCondition]
         closeCallSideCondition
+        if !(← getGoals).isEmpty then
+          let sideState ← saveState
+          try
+            evalTactic (← `(tactic| keygen_registration))
+          catch _ =>
+            sideState.restore
         remaining := remaining ++ (← getGoals)
       setGoals remaining
       if (← getGoals).isEmpty then
@@ -1571,7 +1586,8 @@ It first applies the shared structural simp sets, then selectively unfolds named
 configure/synthesis heads that still block a registration goal. Formal-circuit calls
 stay opaque for explicit discharge through the compositional registration lemmas.
 -/
-elab "keygen_registration" : tactic => do
+elab_rules : tactic
+  | `(tactic| keygen_registration) => do
   if (← getGoals).isEmpty then
     return
   trace[Halo2.keygen] "keygen_registration: introductions"
