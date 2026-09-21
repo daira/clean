@@ -175,6 +175,13 @@ starts to use choice changes its entry, and the change is reviewed with it.
 #guard_msgs in
 #print axioms Halo2.exists_witnessFunctionSupport_of
 
+-- The function of a single-output program.
+
+/-- info: 'Halo2.programFunction' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Halo2.programFunction
+
 -- The support rules for Clean's own program shapes.
 
 /-- info: 'Halo2.witnessFunctionSupport_readCell' depends on axioms: [propext, Quot.sound] -/

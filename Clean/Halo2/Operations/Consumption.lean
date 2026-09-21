@@ -20,7 +20,7 @@ operations do not read any cells. -/
 def RegionOperation.Reads : RegionOperation F → Language Cell
   | .assignAdvice _ _ program =>
       {cells | ∃ reads : List (AssignedCell F),
-        WitnessFunctionSupport reads (fun env => (program.eval env)[0]) ∧
+        WitnessFunctionSupport reads (programFunction program) ∧
           cells = reads.map (·.cell)}
   | _ => 1
 
@@ -36,7 +36,7 @@ theorem mem_reads_assignAdvice_iff (column : Column .advice) (row : ℕ) (progra
     (cells : List Cell) :
     cells ∈ Reads (.assignAdvice column row program) ↔
       ∃ reads : List (AssignedCell F),
-        WitnessFunctionSupport reads (fun env => (program.eval env)[0]) ∧
+        WitnessFunctionSupport reads (programFunction program) ∧
           cells = reads.map (·.cell) :=
   Iff.rfl
 
@@ -49,7 +49,7 @@ theorem consumesFrom_reads_iff (operation : RegionOperation F) :
       match operation with
       | .assignAdvice _ _ program =>
           ∃ reads : List (AssignedCell F),
-            WitnessFunctionSupport reads (fun env => (program.eval env)[0]) ∧
+            WitnessFunctionSupport reads (programFunction program) ∧
               ∀ cell ∈ reads, cell.cell ∈ available
       | _ => True := by
   cases operation

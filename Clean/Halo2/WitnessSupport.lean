@@ -96,6 +96,13 @@ theorem exists_witnessFunctionSupport_of {Value : Type}
     ∃ reads, WitnessFunctionSupport reads compute ∧ property reads :=
   ⟨reads, support, hproperty⟩
 
+/-- The function that a single-output witness program computes. Read obligations and the
+support rules are stated over it, not over the evaluation itself. A definition keeps the
+program syntactic under the keygen normalization, whose `simp!` calls evaluate a native
+program applied to an environment, so the rule search matches the program by its shape. -/
+def programFunction (program : WitgenIR F 1) (env : Placed ProverEnvironment F) : F :=
+  (program.eval env)[0]
+
 /-! ## The rules for Clean's own program shapes -/
 
 /-- Reading one assigned cell has exactly that cell as a sufficient support. -/
@@ -108,9 +115,9 @@ theorem witnessFunctionSupport_readCell (cell : AssignedCell F) :
 dependency. -/
 @[witness_support]
 theorem witnessFunctionSupport_instanceGet (column : Column .instance) (row : ℕ) :
-    WitnessFunctionSupport (F := F) [] (fun env => ((instanceGet column row).eval env)[0]) := by
+    WitnessFunctionSupport (F := F) [] (programFunction (instanceGet column row)) := by
   intro left right agreement
-  dsimp only
+  dsimp only [programFunction]
   rw [eval_instanceGet, eval_instanceGet]
   exact agreement.nonAdvice column.toAny (row : ℤ)
     (by change ColumnKind.instance ≠ ColumnKind.advice; decide)
@@ -119,9 +126,9 @@ theorem witnessFunctionSupport_instanceGet (column : Column .instance) (row : �
 @[witness_support]
 theorem witnessFunctionSupport_ofFExpr (expression : FExpr F) :
     WitnessFunctionSupport (fieldWitnessReads expression)
-      (fun env => ((WitgenIROver.ofFExpr expression : WitgenIR F 1).eval env)[0]) := by
+      (programFunction (WitgenIROver.ofFExpr expression)) := by
   intro left right agreement
-  dsimp only
+  dsimp only [programFunction]
   rw [eval_ofFExpr_zero, eval_ofFExpr_zero]
   exact fieldWitnessReads_eval expression { env := left } { env := right } agreement
 
@@ -130,7 +137,7 @@ theorem witnessFunctionSupport_ofFExpr (expression : FExpr F) :
 theorem witnessFunctionSupport_structured (steps : List (StepOver F (AssignedCell F)))
     (output : VExprOver F (AssignedCell F) 1) :
     WitnessFunctionSupport (stepsWitnessReads steps ++ vectorWitnessReads output)
-      (fun env => ((WitgenIROver.ir steps output : WitgenIR F 1).eval env)[0]) :=
+      (programFunction (WitgenIROver.ir steps output)) :=
   fun left right agreement => congrArg (fun values : Vector F 1 => values[0])
     (structuredWitnessReads_eval steps output left right agreement.toWitnessContextAgreement)
 
@@ -138,9 +145,9 @@ theorem witnessFunctionSupport_structured (steps : List (StepOver F (AssignedCel
 @[witness_support]
 theorem witnessFunctionSupport_scalarBuilder (program : MOver F (AssignedCell F) (FExpr F)) :
     WitnessFunctionSupport (valueBuilderReads (value := field) program)
-      (fun env => ((program.toIRScalar (Env := Placed ProverEnvironment F)).eval env)[0]) := by
+      (programFunction (program.toIRScalar (Env := Placed ProverEnvironment F))) := by
   intro left right agreement
-  dsimp only
+  dsimp only [programFunction]
   simp only [MOver.eval_toIRScalar]
   exact valueBuilderReads_eval (value := field) program left right agreement
 
@@ -167,8 +174,7 @@ theorem witnessFunctionSupport_boolBuilder (program : MOver F (AssignedCell F) (
 @[witness_support]
 theorem witnessFunctionSupport_nativeScalar {reads : List (AssignedCell F)}
     {compute : Placed ProverEnvironment F → F} (support : WitnessFunctionSupport reads compute) :
-    WitnessFunctionSupport reads
-      (fun env => ((.native (fun input => #v[compute input]) : WitgenIR F 1).eval env)[0]) :=
+    WitnessFunctionSupport reads (programFunction (.native (fun input => #v[compute input]))) :=
   support
 
 /-- The native wrapper of a supported Boolean function, as a field bit, has its support. -/
@@ -176,16 +182,14 @@ theorem witnessFunctionSupport_nativeScalar {reads : List (AssignedCell F)}
 theorem witnessFunctionSupport_nativeBoolean {reads : List (AssignedCell F)}
     {compute : Placed ProverEnvironment F → Bool}
     (support : WitnessFunctionSupport reads compute) :
-    WitnessFunctionSupport reads (fun env =>
-      ((.native (fun input => #v[if compute input then (1 : F) else 0]) : WitgenIR F 1).eval
-        env)[0]) :=
+    WitnessFunctionSupport reads
+      (programFunction (.native (fun input => #v[if compute input then (1 : F) else 0]))) :=
   support.map (fun value => if value then (1 : F) else 0)
 
 /-- A constant native program does not read any cell. -/
 @[witness_support]
 theorem witnessFunctionSupport_nativeConstant (value : F) :
-    WitnessFunctionSupport (F := F) []
-      (fun env => ((.native (fun _ => #v[value]) : WitgenIR F 1).eval env)[0]) :=
+    WitnessFunctionSupport (F := F) [] (programFunction (.native (fun _ => #v[value]))) :=
   fun _ _ _ => rfl
 
 /-- A fixed value does not need any cell read. Last among the rules, since it matches any
@@ -209,7 +213,7 @@ structure SupportedProgram (F : Type) [FiniteField F] where
   /-- The cells that the program may read. -/
   reads : List (AssignedCell F)
   /-- The certificate that the program reads only those cells. -/
-  support : WitnessFunctionSupport reads (fun env => (program.eval env)[0])
+  support : WitnessFunctionSupport reads (programFunction program)
 
 /-- A native function with a certified read set. -/
 structure SupportedFunction (F : Type) [FiniteField F] (Value : Type) where

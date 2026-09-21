@@ -24,7 +24,7 @@ example : (supported% (fun _ => true) : SupportedFunction F Bool).reads = [] := 
 from the parameter is supported too. -/
 
 example (p : SupportedProgram F) :
-    WitnessFunctionSupport p.reads (fun env => (p.program.eval env)[0]) := by
+    WitnessFunctionSupport p.reads (programFunction p.program) := by
   solve_witness_support
 
 example (f : SupportedFunction F Bool) :
