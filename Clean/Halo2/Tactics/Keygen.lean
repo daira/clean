@@ -1412,10 +1412,14 @@ partial def normalize : TacticM Unit := do
 Open a read-support obligation `∃ reads, WitnessFunctionSupport reads compute ∧ property reads`.
 The read set is a natural hole that `solve_witness_support` fills from the rules tagged
 `witness_support` while closing the support; the property, normally the memberships of the
-reads in the available cells, remains as the goal.
+reads in the available cells, remains as the goal. The lemma is applied before the search runs,
+so that a goal of another shape fails at once: a search nested in a `refine` term runs before
+the term is matched against the goal, on an unconstrained support that it closes by inventing
+a program.
 -/
 macro "open_witness_support" : tactic =>
-  `(tactic| refine Halo2.exists_witnessFunctionSupport_of _ (by solve_witness_support) ?_)
+  `(tactic| (apply Halo2.exists_witnessFunctionSupport_of
+             case support => solve_witness_support))
 
 /-- Recursively normalize operation spines and conjunctions. -/
 partial def close (unfolded : Std.HashSet Name := {}) : TacticM Unit := do
