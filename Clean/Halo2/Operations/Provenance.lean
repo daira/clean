@@ -256,6 +256,9 @@ theorem RegionOperations.mem_assignedCellsAfter_iff
       rw [inductionHypothesis]
       cases operation <;> simp [RegionOperation.assignedCells, or_left_comm]
 
+/-- An available cell stays available after any operations. As a rule, it closes a
+membership in the set after an opaque loop from the caller's cells. -/
+@[keygen_norm]
 theorem RegionOperations.mem_assignedCellsAfter_of_mem
     (operations : RegionOperations F) (region : RegionIndex)
     (available : List Cell) (cell : Cell) (hcell : cell ∈ available) :

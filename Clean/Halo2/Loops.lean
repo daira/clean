@@ -352,17 +352,18 @@ theorem forRange'_assignedFrom (consumption : Consumption F)
       self available :=
   loopAux_assignedFrom consumption _ body self available m hbody
 
-/-- A loop whose rounds read the row that the round before them wrote is lawful when its
-first round is lawful from the caller's cells, and every later round is lawful from the
-caller's cells together with the cells the previous round assigned. -/
-theorem loopAux_assignedFrom_of_previous_round (consumption : Consumption F)
+/-- A loop whose rounds read rows that earlier rounds wrote is lawful when its first round
+is lawful from the caller's cells, and every later round is lawful from the caller's cells
+together with everything the rounds before it assigned. The later rounds are presented at
+index `i + 1`, so that a round's choice of reads by index reduces. -/
+theorem loopAux_assignedFrom_of_earlier_rounds (consumption : Consumption F)
     (rows : ℕ → ℕ) (body : (i : ℕ) → ℕ → RegionCircuit F Unit)
     (self : RegionIndex) (available : List Cell) (m : ℕ)
     (hfirst : 0 < m →
       ((body 0 (rows 0)).operations self).AssignedFrom consumption self available)
     (hnext : ∀ i, i + 1 < m →
       ((body (i + 1) (rows (i + 1))).operations self).AssignedFrom consumption self
-        (((body i (rows i)).operations self).assignedCells self ++ available)) :
+        (((loopAux rows body (i + 1)).operations self).assignedCellsAfter self available)) :
     ((loopAux rows body m).operations self).AssignedFrom consumption self available := by
   apply loopAux_assignedFrom consumption rows body self available m
   intro i
@@ -371,21 +372,27 @@ theorem loopAux_assignedFrom_of_previous_round (consumption : Consumption F)
   | zero =>
       exact (hfirst hk).mono fun cell hcell =>
         RegionOperations.mem_assignedCellsAfter_of_mem _ _ _ cell hcell
-  | succ k =>
-      refine (hnext k hk).mono ?_
-      intro cell hcell
-      rw [loopAux_operations_succ, RegionOperations.assignedCellsAfter_append,
-        RegionOperations.mem_assignedCellsAfter_iff, List.mem_append]
-      rcases List.mem_append.mp hcell with hround | havailable
-      · exact Or.inr hround
-      · exact Or.inl (RegionOperations.mem_assignedCellsAfter_of_mem _ _ _ cell havailable)
+  | succ k => exact hnext k hk
 
-/-- Constant-stride form of `loopAux_assignedFrom_of_previous_round`. The next round's row
+/-- A cell that round `k` assigns is available from round `k + 1` onward. As a rule, it
+reduces a later round's obligation over the accumulated set to membership in one round's
+cells. -/
+@[keygen_norm]
+theorem mem_assignedCellsAfter_loopAux_succ_of_mem_round (rows : ℕ → ℕ)
+    (body : (i : ℕ) → ℕ → RegionCircuit F Unit) (k : ℕ) (self : RegionIndex)
+    (available : List Cell) (cell : Cell)
+    (hcell : cell ∈ ((body k (rows k)).operations self).assignedCells self) :
+    cell ∈ ((loopAux rows body (k + 1)).operations self).assignedCellsAfter self available := by
+  rw [loopAux_operations_succ, RegionOperations.assignedCellsAfter_append,
+    RegionOperations.mem_assignedCellsAfter_iff, List.mem_append]
+  exact Or.inr hcell
+
+/-- Constant-stride form of `loopAux_assignedFrom_of_earlier_rounds`. The next round's row
 is spelled as the previous round's row plus the stride, which is how a round that assigns
 at its row plus the stride names the same cell, so no row arithmetic is left to the
 gadget. -/
 @[keygen_helper]
-theorem forRange'_assignedFrom_of_previous_round (consumption : Consumption F)
+theorem forRange'_assignedFrom_of_earlier_rounds (consumption : Consumption F)
     (offset stride m : ℕ) (body : (i : ℕ) → ℕ → RegionCircuit F Unit)
     (self : RegionIndex) (available : List Cell)
     (hfirst : 0 < m →
@@ -393,10 +400,11 @@ theorem forRange'_assignedFrom_of_previous_round (consumption : Consumption F)
     (hnext : ∀ i, i + 1 < m →
       ((body (i + 1) (offset + i * stride + stride)).operations self).AssignedFrom
         consumption self
-        (((body i (offset + i * stride)).operations self).assignedCells self ++ available)) :
+        (((loopAux (fun i => offset + i * stride) body (i + 1)).operations self)
+          |>.assignedCellsAfter self available)) :
     ((forRange' offset stride m body).operations self).AssignedFrom consumption
       self available := by
-  apply loopAux_assignedFrom_of_previous_round consumption _ body self available m
+  apply loopAux_assignedFrom_of_earlier_rounds consumption _ body self available m
   · intro hm
     simpa only [Nat.zero_mul, Nat.add_zero] using hfirst hm
   · intro i hi
@@ -683,18 +691,18 @@ theorem forRangeVar'_assignedFrom_of_forall (consumption : Consumption F)
       |>.AssignedFrom consumption self available :=
   loopAux_assignedFrom_of_forall consumption rows body self available m hbody
 
-/-- Variable-stride form of `loopAux_assignedFrom_of_previous_round`. -/
+/-- Variable-stride form of `loopAux_assignedFrom_of_earlier_rounds`. -/
 @[keygen_helper]
-theorem forRangeVar'_assignedFrom_of_previous_round (consumption : Consumption F)
+theorem forRangeVar'_assignedFrom_of_earlier_rounds (consumption : Consumption F)
     (rows : ℕ → ℕ) (m : ℕ) (body : (i : ℕ) → ℕ → RegionCircuit F Unit)
     (self : RegionIndex) (available : List Cell)
     (hfirst : 0 < m →
       ((body 0 (rows 0)).operations self).AssignedFrom consumption self available)
     (hnext : ∀ i, i + 1 < m →
       ((body (i + 1) (rows (i + 1))).operations self).AssignedFrom consumption self
-        (((body i (rows i)).operations self).assignedCells self ++ available)) :
+        (((loopAux rows body (i + 1)).operations self).assignedCellsAfter self available)) :
     ((forRangeVar' rows m body).operations self).AssignedFrom consumption self available :=
-  loopAux_assignedFrom_of_previous_round consumption rows body self available m hfirst hnext
+  loopAux_assignedFrom_of_earlier_rounds consumption rows body self available m hfirst hnext
 
 @[circuit_norm ↓]
 theorem forRangeVar'_constraints (rows : ℕ → ℕ) (m : ℕ)
